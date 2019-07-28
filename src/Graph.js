@@ -1,0 +1,674 @@
+import React, { Component } from 'react'
+import { Query, withApollo } from 'react-apollo'
+
+import {
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+  LineChart,
+  Line
+} from 'recharts'
+
+import strtotime from 'locutus/php/datetime/strtotime'
+import TextField from '@material-ui/core/TextField'
+import Typography from '@material-ui/core/Typography'
+import Radio from '@material-ui/core/Radio';
+import RadioGroup from '@material-ui/core/RadioGroup';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import FormControl from '@material-ui/core/FormControl';
+import FormLabel from '@material-ui/core/FormLabel';
+import InputLabel from '@material-ui/core/InputLabel';
+import Input from '@material-ui/core/Input';
+import MenuItem from '@material-ui/core/MenuItem';
+import Select from '@material-ui/core/Select';
+import Chip from '@material-ui/core/Chip';
+import DateIcon from '@material-ui/icons/Timeline';
+import { MuiPickersUtilsProvider, DateTimePicker, DatePicker } from '@material-ui/pickers'
+import KeyboardArrowLeft from '@material-ui/icons/KeyboardArrowLeft'
+import KeyboardArrowRight from '@material-ui/icons/KeyboardArrowRight'
+import AccessTime from '@material-ui/icons/AccessTime'
+import DateRange from '@material-ui/icons/DateRange'
+import Fab from '@material-ui/core/Fab'
+import AddIcon from '@material-ui/icons/Add'
+import Divider from '@material-ui/core/Divider'
+
+import Table from './TableResponsive'
+import TableSelect from './TableSelect'
+import TableBody from '@material-ui/core/TableBody'
+import TableCell from '@material-ui/core/TableCell'
+import TableRow from '@material-ui/core/TableRow'
+import TableHead from '@material-ui/core/TableHead'
+
+import DateFnsUtils from '@date-io/date-fns'
+import frLocale from "date-fns/locale/fr";
+
+import gql from 'graphql-tag'
+import { withStyles } from '@material-ui/core/styles'
+import { format, startOfDay, startOfMonth } from 'date-fns'
+import ggChartColors from './ChartColors'
+import deepmerge from 'deepmerge'
+
+const ITEM_HEIGHT = 48;
+const ITEM_PADDING_TOP = 8;
+
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      width: 250,
+    },
+  },
+};
+
+const defaultConfig = '3yearsWindow'
+const autoConfigs = {
+  '3yearsWindow': {
+    title: 'Les 3 dernières années',
+    durationAmount: 3,
+    durationUnit: 'year',
+    granularity: 'month',
+    dates: () => [ startOfMonth(new Date(strtotime('-3 years') * 1000)) ]
+  },
+  'lastMonday': {
+    title: 'Lundi dernier par rapport à la semaine précédente',
+    durationAmount: 1,
+    durationUnit: 'week',
+    granularity: 'day',
+    dates: () => [ startOfDay(new Date(strtotime('last monday -1 week') * 1000)), startOfDay(new Date(strtotime('last monday') * 1000)) ]
+  },
+  '7daysWindow': {
+    title: 'Les 7 derniers jours par rapport aux 7 précédents',
+    durationAmount: 1,
+    durationUnit: 'week',
+    granularity: 'day',
+    dates: () => [ startOfDay(new Date(strtotime('-2 weeks') * 1000)), startOfDay(new Date(strtotime('-1 week') * 1000)) ]
+  },
+  '30daysWindow': {
+    title: 'Les 30 derniers jours par rapport aux 30 précédents',
+    durationAmount: 30,
+    durationUnit: 'day',
+    granularity: 'day',
+    dates: () => [ startOfDay(new Date(strtotime('-60 days') * 1000)), startOfDay(new Date(strtotime('-30 days') * 1000)) ]
+  }
+}
+
+function getStyles(key, keys, theme) {
+  return {
+    fontWeight:
+      keys.indexOf(key) === -1
+        ? theme.typography.fontWeightRegular
+        : theme.typography.fontWeightMedium,
+  };
+}
+
+const styles = theme => ({
+  root: {
+    flexGrow: 1,
+    padding: theme.spacing(2),
+  },
+  graph: {
+    marginTop: theme.spacing(3),
+    marginBottom: theme.spacing(5)
+  },
+  pie: {
+    fontSize: 10
+  },
+  tooltip: {
+    fontSize: 10,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    boxShadow: '5px 5px 1em rgba(0,0,0,0.3)',
+    padding: theme.spacing(1),
+    '& p': {
+      margin: theme.spacing(0.5)
+    },
+    '& > div:not(:first-child)': {
+      marginTop: theme.spacing(1)
+    }
+  },
+  formControl: {
+    margin: theme.spacing(3),
+  },
+  radioGroup: {
+    margin: theme.spacing(1, 0),
+  },
+  chips: {
+    display: 'flex',
+    flexWrap: 'wrap',
+  },
+  chip: {
+    margin: 2,
+  },
+  fatChip: {
+    height: 'auto',
+    padding: theme.spacing(1, 0)
+  },
+  table: {
+    marginBottom: theme.spacing(4),
+  }
+})
+
+const statsQuery = () => gql`
+  query Statistics($granularity: String!, $duration: String!, $series: [DimensionType!]) {
+    statistics(granularity: $granularity, duration: $duration, series: $series)
+  }
+`
+
+const resolveObjectKeyChain = (o, keyChain) => keyChain
+  .reduce((ro, property) => {
+    if (property.slice(-1) === ']') {
+      const openTokenIndex = property.indexOf('[')
+      const arrayName = property.substring(0, openTokenIndex)
+      const index =  property.substring(openTokenIndex + 1, property.length - 1)
+      return ro[arrayName][index]
+    } else {
+      return ro[property]
+    }
+  }, o)
+
+const DateTimeChip = ({ formatter, granularity, classes, onDelete, onChange, date }) => <Chip
+    icon={<DateIcon />}
+    classes={{root: classes.fatChip}}
+    label={granularity === 'hour'
+      ? <DateTimePicker
+        label="Début de la série"
+        value={date}
+        disableFuture
+        autoOk
+        labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
+        ampm={false}
+        onAccept={onChange}
+        onChange={() => null}
+        leftArrowIcon={<KeyboardArrowLeft />}
+        rightArrowIcon={<KeyboardArrowRight />}
+        dateRangeIcon={<DateRange />}
+        timeIcon={<AccessTime />}
+        />
+      : <DatePicker
+        label="Début de la série"
+        value={date}
+        disableFuture
+        autoOk
+        labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
+        onAccept={onChange}
+        onChange={() => null}
+        leftArrowIcon={<KeyboardArrowLeft />}
+        rightArrowIcon={<KeyboardArrowRight />}
+        />}
+    onDelete={onDelete}
+    className={classes.chip}
+    variant="outlined"
+    color="primary"
+  />
+
+const formatSerieValue = (dimension, value) => {
+  if (value === null) {
+    return ''
+  }
+  switch (dimension.type) {
+    case 'currency':
+      return value.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'})
+    case 'percent':
+      return value.toLocaleString('fr-FR', {style: 'percent'})
+    case 'integer':
+      return Math.round(value)
+    default:
+      return value.toLocaleString('fr-FR', {style: 'decimal'})
+  }
+}
+
+const CustomTooltip = dimensions => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
+  let groupsByLabel = payload.reduce((groups, serie) => {
+    const dimensionKey = serie.dataKey.split('.')[0]
+    const date = resolveObjectKeyChain(serie.payload, [ dimensionKey ]).date
+    if (groups[date] === undefined) {
+      groups[date] = [
+        serie
+      ]
+    } else {
+      groups[date].push(serie)
+    }
+    return groups
+  }, {})
+
+  if (active) {
+    return <div className={clasName} style={wrapperStyle}>
+        {Object.keys(groupsByLabel).map(date => 
+          (
+            <div key={date}>
+              <Typography variant="subtitle2" component="p">{date}</Typography>
+              {groupsByLabel[date].map(serie => {
+                  const serieKey = serie.dataKey.split('.').slice(1).join('.')
+                  return <p
+                    key={serie.dataKey}
+                    style={{color: serie.stroke ? serie.stroke : serie.fill}}>
+                    {dimensions[serieKey].title} : {formatSerieValue(dimensions[serieKey], serie.value)}
+                  </p>
+                })
+              }
+            </div>
+          ))}
+      </div>
+  }
+
+  return null
+}
+
+class Graph extends Component {
+  state = { 
+    granularity: autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day',
+    timeStr: '',
+    testDate: null,
+    graphType: 'line',
+    keys: [],
+    autoConfig: defaultConfig,
+    durationUnit: autoConfigs[defaultConfig].durationUnit,
+    durationAmount: autoConfigs[defaultConfig].durationAmount,
+    dates: autoConfigs[defaultConfig].dates()
+  }
+
+  generateColors (keys) {
+    let i = 0
+    return keys.reduce((colors, key) => {
+        colors[key] = ggChartColors[i++]
+        return colors
+      },
+      {})
+  }
+
+  handleChangeKeys (event) {
+    this.setState({ keys: Array.isArray(event) ? event : event.target.value })
+  }
+
+  dateFormatter(granularity) {
+    switch (granularity) {
+      case 'hour': return 'dd/MM/yyyy, HH:mm'
+      case 'day': return 'dd/MM/yyyy'
+      case 'week': return 'RRRR\', semaine \'II'
+      case 'month': return 'MM/yyyy'
+      case 'year': return 'yyyy'
+      default: throw Error(`Granularity ${granularity} should be hour, day, week, month or year`)
+    }
+  }
+
+  handleChangeGraphType(event) {
+    this.setState({ graphType: event.target.value })
+  }
+
+  handleChangeGranularity(event) {
+    this.setState({ granularity: event.target.value })
+  }
+
+  handleChangeDurationAmount (event) {
+    if (event.target.value !== '' && !isNaN(parseInt(event.target.value, 10))) {
+      this.setState({
+        autoConfig: null,
+        durationAmount: event.target.value
+      })
+    }    
+  }
+  
+  handleChangeDurationUnit (event) {
+    this.setState({
+      autoConfig: null,
+      durationUnit: event.target.value
+    })
+  }
+
+  handleChangeAutoconfig (event) {
+    this.setState({
+      granularity:  autoConfigs[event.target.value].granularity,
+      durationUnit: autoConfigs[event.target.value].durationUnit,
+      durationAmount: autoConfigs[event.target.value].durationAmount,
+      dates: autoConfigs[event.target.value].dates(),
+      autoConfig: event.target.value
+    })
+  }
+
+  handleChangeDate(j, date, ...rest) {
+    this.setState(({dates}) => {
+      let datesCopy = Array.from(dates)
+      datesCopy[j] = date
+      datesCopy = datesCopy.sort((a, b) => a.getTime() - b.getTime())
+      return { 
+        dates: datesCopy,
+        autoConfig: null
+      }
+    })
+  }
+
+  handleAddDate() {
+    this.setState(({dates, durationAmount, durationUnit}) => {
+      dates.unshift(new Date(strtotime(`-${durationAmount} ${durationUnit}`, dates[0].getTime() / 1000) * 1000))
+      return {
+        autoConfig: null,
+        dates
+      }
+    })
+  }
+
+  handleDeleteDate(j) {
+    this.setState(state => ({
+      autoConfig: null,
+      dates: state.dates.filter((_, i) => i !== j)
+    }))
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    if (state.keys.length === 0) {
+      return {
+        ...state,
+        keys: Object.keys(props.dimensions).slice(0, 1)
+      }
+    } else {
+      return null
+    }
+  }
+
+  render() { 
+    let { classes, graphOptions, theme } = this.props
+    
+    if ( !graphOptions ) {
+      graphOptions = { serieType: 'linear' }
+    }
+    
+    if ( !graphOptions.serieType ) {
+      graphOptions.serieType = 'linear'
+    }
+    
+    if ( !graphOptions.formatters ) {
+      graphOptions.formatters = {}
+    }
+
+    const { keys, dates } = this.state
+    const expandedKeys = keys.map(key => this.props.dimensions[key].series !== undefined 
+      ?  this.props.dimensions[key].series
+      : key)
+      .flat()
+
+    const series = dates.map(date => ({
+        from: date.toISOString(),
+        dimensions: expandedKeys
+      }))
+    
+    const colors = this.generateColors(series.map((v, i) => keys.map(key => `${i}.${key}`)).flat())
+    const dateFormatter = this.dateFormatter(this.state.granularity)
+    let [ Chart, SerieComponent ] = this.state.graphType === 'bar' 
+      ? [ BarChart, Bar ]
+      : [ LineChart, Line ]
+    
+    return <>
+      
+      <Query
+        query={statsQuery()}
+        variables={{
+          granularity: this.state.granularity,
+          duration: `${this.state.durationAmount} ${this.state.durationUnit}`,
+          series
+        }}
+      >
+      {({ loading, error, data }) => {
+        let series = null
+        let reduction = {}
+        if (!loading) {
+          const computedKeys = keys.filter(key => this.props.dimensions[key].series !== undefined)
+          series = data.statistics.map(point => ({
+            ...point,
+            date: format(new Date(point.date), dateFormatter, { weekStartsOn: 1, locale: frLocale }),
+            dimensions: point.dimensions.map(dimension => ({
+                ...deepmerge(dimension, computedKeys
+                  .reduce((extraFields, computedKey) => deepmerge(extraFields, computedKey
+                        .split('.')
+                        .reverse()
+                        .reduce(
+                          (o, k) => ({ [k]: o }),
+                          this.props.dimensions[computedKey].f(dimension))
+                      ),
+                    {})),
+                date: format(new Date(dimension.date), dateFormatter, { weekStartsOn: 1, locale: frLocale })
+              })
+            )
+          }))
+
+          reduction = series[0].dimensions.map((dimension, i) => {
+            const dimensionSerie = series.map(point => point.dimensions[i])
+            return keys.reduce((o, key) => {
+              o[key] = dimensionSerie
+                .map(entry => resolveObjectKeyChain(entry, key.split('.')))
+                .reduce(this.props.dimensions[key].reducer, null)
+              o[key] = o[key] !== null && typeof o[key] === 'object' ? o[key].value : o[key]
+              return o
+            }, {})
+          })
+          
+        }
+        return loading 
+          ? <p>Chargement des données...</p>
+          : <div className={classes.graph}>
+            <FormControl className={classes.formControl}>
+              <InputLabel htmlFor="autoconfig">Pré-configuration</InputLabel>
+              <Select
+                value={this.state.autoConfig === null ? 'custom' : this.state.autoConfig}
+                onChange={this.handleChangeAutoconfig.bind(this)}
+                inputProps={{
+                  name: 'autoconfig',
+                  id: 'autoconfig',
+                }}
+              >
+                <MenuItem disabled={true} value="custom">
+                  <em>Configuration personnalisée</em>
+                </MenuItem>
+                {Object.keys(autoConfigs).map(key => 
+                  <MenuItem key={key} value={key}>{autoConfigs[key].title}</MenuItem>
+                )}
+                
+              </Select>
+            </FormControl>
+            <Table className={classes.table}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>
+                    Série
+                  </TableCell>
+                  {Object.keys(reduction[0]).map(key => <TableCell key={key}>
+                    {this.props.dimensions[key].title}
+                  </TableCell>)}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+              {reduction.reduce(
+                (lastSeries, serie) => [...lastSeries, { dimension: serie, variation: Object.keys(serie).reduce(
+                    (o, key) => {
+                      if (! lastSeries.length) {
+                        o[key] = null
+                      } else {
+                        o[key] = lastSeries[lastSeries.length -1].dimension[key] 
+                          ? serie[key] / lastSeries[lastSeries.length -1].dimension[key]
+                          : null
+                      }
+                      return o
+                    },
+                    {}
+                  ) }],
+                []
+              ).map(({dimension, variation}, i) => <TableRow key={i}>
+                <TableCell>{format(this.state.dates[i], this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}</TableCell>
+                {Object.keys(dimension).map(key => 
+                  <TableCell key={`${i}-${key}`} style={{color: variation[key] !== null ? variation[key] - 1 > 0 ? 'green': variation[key] - 1 < 0 ? 'red' : 'inherit' : 'inherit' }}>
+                    {formatSerieValue(this.props.dimensions[key], dimension[key])} {variation[key] !== null ? `(${variation[key] - 1 > 0 ? '+':''}${(variation[key] - 1).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})})` : ''}
+                  </TableCell>
+                )}
+                </TableRow>
+              )}
+              </TableBody>
+            </Table>
+            <ResponsiveContainer width="100%" maxWidth="100%" height={graphOptions.height?graphOptions.height:400} >
+              <Chart
+                  data={series}
+                  margin={{ top: 0, right: 0, left: 20, bottom: 10 }}>
+                <YAxis />
+                <XAxis
+                  dataKey={`date`}
+                  key={`date`}
+                  />
+                <Tooltip
+                  clasName={classes.tooltip}
+                  wrapperStyle={{ fontSize: 10 }}
+                  content={CustomTooltip(this.props.dimensions)}
+                  />
+                <CartesianGrid stroke="#f5f5f5" />
+
+                {series[0].dimensions.map((v, i) =>
+                  keys.map(key =>
+                    <SerieComponent
+                      key={`dimensions[${i}].`+key}
+                      dataKey={`dimensions[${i}].`+key}
+                      stackId={`dimensions[${i}].`+key}
+                      style={{position: 'relative'}}
+                      type={graphOptions.serieType}
+                      dot={false}
+                      {...(SerieComponent===Line
+                        ? { 
+                          stroke: colors[`${i}.${key}`],
+                          strokeWidth: 3
+                        }
+                        : { 
+                          fill: colors[`${i}.${key}`] 
+                        })
+                      }
+                      >
+                    </SerieComponent>
+                  )
+                )}
+              </Chart>
+          </ResponsiveContainer>
+        </div>
+      }}
+      </Query>
+
+      <Divider variant="middle" />
+
+      <FormControl className={classes.formControl}>
+        <FormLabel>Dimensions</FormLabel>
+        {Object.keys(this.props.dimensions).length > 20
+          ? <TableSelect
+              multiple
+              initialValue={Object.keys(this.props.dimensions).slice(0, 1)}
+              onChange={this.handleChangeKeys.bind(this)}
+              dimensions={this.props.dimensions}
+            />
+          : <Select
+          multiple
+          value={this.state.keys}
+          onChange={this.handleChangeKeys.bind(this)}
+          input={<Input id="select-multiple-chip" />}
+          renderValue={selected => (
+            <div className={classes.chips}>
+              {selected.map(value => (
+                <Chip key={value} label={this.props.dimensions[value].title} className={classes.chip} />
+              ))}
+            </div>
+          )}
+          MenuProps={MenuProps}
+        >
+          {Object.keys(this.props.dimensions).map(key => (
+            <MenuItem key={key} value={key} style={getStyles(key, this.state.keys, theme)}>
+              {this.props.dimensions[key].title}
+            </MenuItem>
+          ))}
+        </Select>
+        }
+        
+      </FormControl>
+
+      <Divider variant="middle" />
+
+      <div className={classes.formControl}>
+        <MuiPickersUtilsProvider utils={DateFnsUtils} locale={frLocale}>
+          <FormLabel>Séries temporelles</FormLabel>
+          <div className={classes.datesContainer}>
+            {dates.map((date, i) => <DateTimeChip 
+              key={i}
+              date={date}
+              granularity={this.state.granularity}
+              formatter={this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' )}
+              classes={classes} 
+              onChange={this.handleChangeDate.bind(this, i)} 
+              onDelete={this.handleDeleteDate.bind(this, i)} />)}
+            <Fab color="primary" aria-label="Add" className={classes.fab} onClick={this.handleAddDate.bind(this)}>
+              <AddIcon />
+            </Fab>
+          </div>
+        </MuiPickersUtilsProvider>
+      </div>
+
+      <Divider variant="middle" />
+
+      <FormControl className={classes.formControl}>
+        <FormLabel>Agrégation</FormLabel>
+        <Select
+          value={this.state.granularity}
+          onChange={this.handleChangeGranularity.bind(this)}
+          inputProps={{
+            name: 'agregation',
+          }}
+        >
+          <MenuItem value="day">Par jour</MenuItem>
+          <MenuItem value="week">Par semaine</MenuItem>
+          <MenuItem value="month">Par mois</MenuItem>
+          <MenuItem value="year">Par an</MenuItem>
+        </Select>
+      </FormControl>
+      
+      <FormControl className={classes.formControl}>
+        <FormLabel>Durée</FormLabel>
+        <TextField
+          id="duration-amount"
+          value={this.state.durationAmount}
+          onChange={this.handleChangeDurationAmount.bind(this)}
+          type="number"
+          InputLabelProps={{
+            shrink: true,
+            name: 'duration-amount'
+          }}
+          margin="normal"
+        />
+        <Select
+          value={this.state.durationUnit}
+          onChange={this.handleChangeDurationUnit.bind(this)}
+          inputProps={{
+            name: 'duration-unit',
+          }}
+        >
+          {/* <MenuItem value="hour">Heure</MenuItem> */}
+          <MenuItem value="day">Jour</MenuItem>
+          <MenuItem value="week">Semaine</MenuItem>
+          <MenuItem value="month">Mois</MenuItem>
+          <MenuItem value="year">An</MenuItem>
+        </Select>
+      </FormControl>
+
+      <Divider variant="middle" />
+
+      <FormControl className={classes.formControl}>
+        <FormLabel>Type de représentation</FormLabel>
+        <RadioGroup
+          aria-label="Type de graphe"
+          className={classes.radioGroup}
+          value={this.state.graphType}
+          onChange={this.handleChangeGraphType.bind(this)}
+        >
+          <FormControlLabel value="line" control={<Radio />} label="Lignes" />
+          <FormControlLabel value="bar" control={<Radio />} label="Colonnes" />
+        </RadioGroup>
+      </FormControl>
+
+      
+    </>
+  }
+}
+ 
+export default withStyles(styles, { withTheme: true })(Graph)
