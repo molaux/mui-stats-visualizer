@@ -64,38 +64,6 @@ const MenuProps = {
   },
 };
 
-const defaultConfig = '3yearsWindow'
-const autoConfigs = {
-  '3yearsWindow': {
-    title: 'Les 3 dernières années',
-    durationAmount: 3,
-    durationUnit: 'year',
-    granularity: 'month',
-    dates: () => [ startOfMonth(new Date(strtotime('-3 years') * 1000)) ]
-  },
-  'lastMonday': {
-    title: 'Lundi dernier par rapport à la semaine précédente',
-    durationAmount: 1,
-    durationUnit: 'week',
-    granularity: 'day',
-    dates: () => [ startOfDay(new Date(strtotime('last monday -1 week') * 1000)), startOfDay(new Date(strtotime('last monday') * 1000)) ]
-  },
-  '7daysWindow': {
-    title: 'Les 7 derniers jours par rapport aux 7 précédents',
-    durationAmount: 1,
-    durationUnit: 'week',
-    granularity: 'day',
-    dates: () => [ startOfDay(new Date(strtotime('-2 weeks') * 1000)), startOfDay(new Date(strtotime('-1 week') * 1000)) ]
-  },
-  '30daysWindow': {
-    title: 'Les 30 derniers jours par rapport aux 30 précédents',
-    durationAmount: 30,
-    durationUnit: 'day',
-    granularity: 'day',
-    dates: () => [ startOfDay(new Date(strtotime('-60 days') * 1000)), startOfDay(new Date(strtotime('-30 days') * 1000)) ]
-  }
-}
-
 function getStyles(key, keys, theme) {
   return {
     fontWeight:
@@ -258,17 +226,22 @@ const CustomTooltip = dimensions => ({ active, payload, label, clasName, wrapper
 }
 
 class Graph extends Component {
-  state = { 
-    granularity: autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day',
-    timeStr: '',
-    testDate: null,
-    graphType: 'line',
-    keys: [],
-    autoConfig: defaultConfig,
-    durationUnit: autoConfigs[defaultConfig].durationUnit,
-    durationAmount: autoConfigs[defaultConfig].durationAmount,
-    dates: autoConfigs[defaultConfig].dates()
+  constructor(props) {
+    super(props);
+    const { autoConfigs, defaultConfig } = this.props
+    this.state = { 
+      granularity: autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day',
+      timeStr: '',
+      testDate: null,
+      graphType: 'line',
+      keys: [],
+      autoConfig: defaultConfig,
+      durationUnit: autoConfigs[defaultConfig].durationUnit,
+      durationAmount: autoConfigs[defaultConfig].durationAmount,
+      dates: autoConfigs[defaultConfig].dates()
+    }
   }
+  
 
   generateColors (keys) {
     let i = 0
@@ -319,6 +292,7 @@ class Graph extends Component {
   }
 
   handleChangeAutoconfig (event) {
+    const { autoConfigs } = this.props
     this.setState({
       granularity:  autoConfigs[event.target.value].granularity,
       durationUnit: autoConfigs[event.target.value].durationUnit,
@@ -369,7 +343,7 @@ class Graph extends Component {
   }
 
   render() { 
-    let { classes, graphOptions, theme } = this.props
+    let { classes, graphOptions, theme, dimensionsSelector, autoConfigs } = this.props
     
     if ( !graphOptions ) {
       graphOptions = { serieType: 'linear' }
@@ -399,6 +373,14 @@ class Graph extends Component {
     let [ Chart, SerieComponent ] = this.state.graphType === 'bar' 
       ? [ BarChart, Bar ]
       : [ LineChart, Line ]
+    
+    if (!dimensionsSelector) {
+      if (Object.keys(this.props.dimensions).length > 20) {
+        dimensionsSelector = 'table'
+      } else {
+        dimensionsSelector = 'select'
+      }
+    }
     
     return <>
       
@@ -553,7 +535,7 @@ class Graph extends Component {
 
       <FormControl className={classes.formControl}>
         <FormLabel>Dimensions</FormLabel>
-        {Object.keys(this.props.dimensions).length > 20
+        {dimensionsSelector === 'table'
           ? <TableSelect
               multiple
               initialValue={Object.keys(this.props.dimensions).slice(0, 1)}
