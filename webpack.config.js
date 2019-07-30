@@ -21,8 +21,22 @@ module.exports = {
       }
     ]
   },
-  externals: {
-    'react': 'commonjs react',
-    'react-dom': 'react-dom'
-  }
+  externals: [
+    {
+      'react': 'commonjs react',
+      'react-dom': 'react-dom',
+      "apollo-boost": "apollo-boost",
+      "graphql": "graphql",
+      "graphql-tag": "graphql-tag",
+      "react-apollo": "react-apollo",
+      "@date-io/date-fns": "@date-io/date-fns",
+      'date-fns': 'date-fns',
+      'recompose': 'recompose',
+      'recharts': 'recharts',
+      'deepmerge': 'deepmerge',
+      'locutus': 'locutus'
+    },
+    /@material-ui\/.*/,
+    /date-fns\/.*/
+  ]
 };

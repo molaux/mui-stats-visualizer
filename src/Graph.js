@@ -343,10 +343,20 @@ class Graph extends Component {
   }
 
   render() { 
-    let { classes, graphOptions, theme, dimensionsSelector, autoConfigs } = this.props
+    let { classes, graphOptions, theme, dimensionsSelector, autoConfigs, timeAggregations } = this.props
     
     if ( !graphOptions ) {
       graphOptions = { serieType: 'linear' }
+    }
+
+    if ( !timeAggregations ) {
+      timeAggregations = {
+        hour: 'Heure',
+        day: 'Jour',
+        week: 'Semaine',
+        month: 'Mois',
+        year: 'An'
+      }
     }
     
     if ( !graphOptions.serieType ) {
@@ -598,10 +608,9 @@ class Graph extends Component {
             name: 'agregation',
           }}
         >
-          <MenuItem value="day">Par jour</MenuItem>
-          <MenuItem value="week">Par semaine</MenuItem>
-          <MenuItem value="month">Par mois</MenuItem>
-          <MenuItem value="year">Par an</MenuItem>
+          {Object.keys(timeAggregations).map(taKey => 
+            <MenuItem key={taKey} value={taKey}>Par {timeAggregations[taKey].toLowerCase()}</MenuItem>
+          )}
         </Select>
       </FormControl>
       
@@ -625,11 +634,9 @@ class Graph extends Component {
             name: 'duration-unit',
           }}
         >
-          {/* <MenuItem value="hour">Heure</MenuItem> */}
-          <MenuItem value="day">Jour</MenuItem>
-          <MenuItem value="week">Semaine</MenuItem>
-          <MenuItem value="month">Mois</MenuItem>
-          <MenuItem value="year">An</MenuItem>
+          {Object.keys(timeAggregations).map(taKey => 
+            <MenuItem key={taKey} value={taKey}>{timeAggregations[taKey]}</MenuItem>
+          )}
         </Select>
       </FormControl>
 
