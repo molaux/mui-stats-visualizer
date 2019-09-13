@@ -125,6 +125,13 @@ const statsQuery = () => gql`
   }
 `
 
+/**
+ * Given an object and an array properties, resolves o[array[0]][array[1]][...]
+ * array properties must be referenced as 'prop[i]' in keyChain
+ * @param {object} o the object to dereference
+ * @param {array} keyChain The properties chain
+ * @return {object} The resolved object 
+ */
 const resolveObjectKeyChain = (o, keyChain) => keyChain
   .reduce((ro, property) => {
     if (property.slice(-1) === ']') {
@@ -518,7 +525,7 @@ class Graph extends Component {
                     <SerieComponent
                       key={`dimensions[${i}].`+key}
                       dataKey={`dimensions[${i}].`+key}
-                      stackId={`dimensions[${i}].`+key}
+                      stackId={true?i:`dimensions[${i}].`+key}
                       style={{position: 'relative'}}
                       type={graphOptions.serieType}
                       dot={false}
@@ -553,25 +560,25 @@ class Graph extends Component {
               dimensions={this.props.dimensions}
             />
           : <Select
-          multiple
-          value={this.state.keys}
-          onChange={this.handleChangeKeys.bind(this)}
-          input={<Input id="select-multiple-chip" />}
-          renderValue={selected => (
-            <div className={classes.chips}>
-              {selected.map(value => (
-                <Chip key={value} label={this.props.dimensions[value].title} className={classes.chip} />
+              multiple
+              value={this.state.keys}
+              onChange={this.handleChangeKeys.bind(this)}
+              input={<Input id="select-multiple-chip" />}
+              renderValue={selected => (
+                <div className={classes.chips}>
+                  {selected.map(value => (
+                    <Chip key={value} label={this.props.dimensions[value].title} className={classes.chip} />
+                  ))}
+                </div>
+              )}
+              MenuProps={MenuProps}
+            >
+              {Object.keys(this.props.dimensions).map(key => (
+                <MenuItem key={key} value={key} style={getStyles(key, this.state.keys, theme)}>
+                  {this.props.dimensions[key].title}
+                </MenuItem>
               ))}
-            </div>
-          )}
-          MenuProps={MenuProps}
-        >
-          {Object.keys(this.props.dimensions).map(key => (
-            <MenuItem key={key} value={key} style={getStyles(key, this.state.keys, theme)}>
-              {this.props.dimensions[key].title}
-            </MenuItem>
-          ))}
-        </Select>
+            </Select>
         }
         
       </FormControl>
