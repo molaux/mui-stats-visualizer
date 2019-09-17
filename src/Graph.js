@@ -10,13 +10,16 @@ import {
   BarChart,
   Bar,
   LineChart,
-  Line
+  Line,
+  AreaChart,
+  Area
 } from 'recharts'
 
 import strtotime from 'locutus/php/datetime/strtotime'
 import TextField from '@material-ui/core/TextField'
 import Typography from '@material-ui/core/Typography'
 import Radio from '@material-ui/core/Radio';
+import Checkbox from '@material-ui/core/Checkbox';
 import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormControl from '@material-ui/core/FormControl';
@@ -98,7 +101,9 @@ const styles = theme => ({
     }
   },
   formControl: {
-    margin: theme.spacing(3),
+    padding: theme.spacing(3),
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   },
   radioGroup: {
     margin: theme.spacing(1, 0),
@@ -116,6 +121,10 @@ const styles = theme => ({
   },
   table: {
     marginBottom: theme.spacing(4),
+  },
+  paddedContent: {
+    paddingLeft: theme.spacing(3),
+    paddingRight: theme.spacing(3)
   }
 })
 
@@ -196,7 +205,7 @@ const formatSerieValue = (dimension, value) => {
 }
 
 const CustomTooltip = dimensions => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
-  let groupsByLabel = payload.reduce((groups, serie) => {
+  let groupsByLabel = (payload || []).reduce((groups, serie) => {
     const dimensionKey = serie.dataKey.split('.')[0]
     const date = resolveObjectKeyChain(serie.payload, [ dimensionKey ]).date
     if (groups[date] === undefined) {
@@ -241,6 +250,7 @@ class Graph extends Component {
       timeStr: '',
       testDate: null,
       graphType: 'line',
+      graphStack: false,
       keys: [],
       autoConfig: defaultConfig,
       durationUnit: autoConfigs[defaultConfig].durationUnit,
@@ -253,7 +263,7 @@ class Graph extends Component {
   generateColors (keys) {
     let i = 0
     return keys.reduce((colors, key) => {
-        colors[key] = ggChartColors[i++]
+        colors[key] = ggChartColors[i++ % ggChartColors.length]
         return colors
       },
       {})
@@ -276,6 +286,10 @@ class Graph extends Component {
 
   handleChangeGraphType(event) {
     this.setState({ graphType: event.target.value })
+  }
+
+  handleChangeGraphStack(event) {
+    this.setState({ graphStack: event.target.checked })
   }
 
   handleChangeGranularity(event) {
@@ -332,10 +346,15 @@ class Graph extends Component {
   }
 
   handleDeleteDate(j) {
-    this.setState(state => ({
-      autoConfig: null,
-      dates: state.dates.filter((_, i) => i !== j)
-    }))
+    this.setState(state => state.dates > 1 
+      ? {
+        autoConfig: null,
+        dates: state.dates.filter((_, i) => i !== j)
+      }
+      : {
+        autoConfig: null,
+        dates: [ new Date(strtotime(`-${state.durationAmount} ${state.durationUnit}`) * 1000) ]
+      })
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -349,6 +368,25 @@ class Graph extends Component {
     }
   }
 
+  /**
+   * this.props.dimensions = {
+   *   [category_dimension]: { // the dimension key
+   *     group: { // defines the group to wich dimension belongs
+   *       depth, // sets the level of category
+   *       label, // sets the label of the category
+   *       dimension, // sets the label of the dimension
+   *       key, // the group key
+   *     },
+   *     title, // the dimension detailed title as displayed (for legends and  tooltips)
+   *     type, // a type of data (currency, ...)
+   *     reducer, // a function to be applyed on whole serie and compute summary  (eg, avg or sum)
+   * 
+   *     // Optional virtual dimensions definition based on other dimensions
+   *     series, // an array of dimension to be based on
+   *     f: o => f(o), // a function to apply on dimensions and compute the  virtual dimension
+   *   }
+   * }
+   */
   render() { 
     let { classes, graphOptions, theme, dimensionsSelector, autoConfigs, timeAggregations } = this.props
     
@@ -375,22 +413,33 @@ class Graph extends Component {
     }
 
     const { keys, dates } = this.state
-    const expandedKeys = keys.map(key => this.props.dimensions[key].series !== undefined 
+
+    // Retrieve real dimensions involve, even in virtual dimensions
+    const expandedKeys = [... new Set(keys.map(key => this.props.dimensions[key].series !== undefined 
       ?  this.props.dimensions[key].series
       : key)
-      .flat()
+      .flat())]
 
+    // Create series from start dates / dimensions
     const series = dates.map(date => ({
         from: date.toISOString(),
         dimensions: expandedKeys
       }))
     
+    // Generate colors
     const colors = this.generateColors(series.map((v, i) => keys.map(key => `${i}.${key}`)).flat())
+
+    // Get date format according to granularity
     const dateFormatter = this.dateFormatter(this.state.granularity)
+
+    // Select chart type
     let [ Chart, SerieComponent ] = this.state.graphType === 'bar' 
       ? [ BarChart, Bar ]
-      : [ LineChart, Line ]
+      : !this.state.graphStack
+        ? [ LineChart, Line ]
+        : [ AreaChart, Area ]
     
+    // If not set, auto determine dimensions selector widget type
     if (!dimensionsSelector) {
       if (Object.keys(this.props.dimensions).length > 20) {
         dimensionsSelector = 'table'
@@ -399,9 +448,10 @@ class Graph extends Component {
       }
     }
     
+    // TODO: colors and stacks
     return <>
-      
       <Query
+        // Request stats data 
         query={statsQuery()}
         variables={{
           granularity: this.state.granularity,
@@ -410,16 +460,20 @@ class Graph extends Component {
         }}
       >
       {({ loading, error, data }) => {
-        let series = null
-        let reduction = {}
+        let series = []
+        let reduction = []
         if (!loading) {
           const computedKeys = keys.filter(key => this.props.dimensions[key].series !== undefined)
+
+          // Format series and compute virtual dimentions in order to be injected in reCharts
           series = data.statistics.map(point => ({
             ...point,
             date: format(new Date(point.date), dateFormatter, { weekStartsOn: 1, locale: frLocale }),
             dimensions: point.dimensions.map(dimension => ({
                 ...deepmerge(dimension, computedKeys
-                  .reduce((extraFields, computedKey) => deepmerge(extraFields, computedKey
+                  .reduce((extraFields, computedKey) => 
+                    deepmerge(extraFields,
+                      computedKey
                         .split('.')
                         .reverse()
                         .reduce(
@@ -432,6 +486,7 @@ class Graph extends Component {
             )
           }))
 
+          // compute reductions and variations between series 
           reduction = series[0].dimensions.map((dimension, i) => {
             const dimensionSerie = series.map(point => point.dimensions[i])
             return keys.reduce((o, key) => {
@@ -444,11 +499,9 @@ class Graph extends Component {
           })
           
         }
-        return loading 
-          ? <p>Chargement des données...</p>
-          : <div className={classes.graph}>
+        return <div className={classes.graph}>
             <FormControl className={classes.formControl}>
-              <InputLabel htmlFor="autoconfig">Pré-configuration</InputLabel>
+              <FormLabel htmlFor="autoconfig">Pré-configuration</FormLabel>
               <Select
                 value={this.state.autoConfig === null ? 'custom' : this.state.autoConfig}
                 onChange={this.handleChangeAutoconfig.bind(this)}
@@ -466,15 +519,19 @@ class Graph extends Component {
                 
               </Select>
             </FormControl>
+            <div className={classes.paddedContent}>
             <Table className={classes.table}>
               <TableHead>
                 <TableRow>
                   <TableCell>
                     Série
                   </TableCell>
-                  {Object.keys(reduction[0]).map(key => <TableCell key={key}>
-                    {this.props.dimensions[key].title}
-                  </TableCell>)}
+                  {reduction.length 
+                    ? Object.keys(reduction[0]).map((key, i) =>
+                      <TableCell key={key}>
+                        {this.props.dimensions[key].title}
+                      </TableCell>)
+                    : null}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -496,7 +553,27 @@ class Graph extends Component {
               ).map(({dimension, variation}, i) => <TableRow key={i}>
                 <TableCell>{format(this.state.dates[i], this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}</TableCell>
                 {Object.keys(dimension).map(key => 
-                  <TableCell key={`${i}-${key}`} style={{color: variation[key] !== null ? variation[key] - 1 > 0 ? 'green': variation[key] - 1 < 0 ? 'red' : 'inherit' : 'inherit' }}>
+                  <TableCell 
+                    key={`${i}-${key}`} 
+                    style={{
+                      whiteSpace: 'nowrap',
+                      color: variation[key] !== null
+                        ? variation[key] - 1 > 0
+                          ? 'green'
+                          : variation[key] - 1 < 0
+                            ? 'red'
+                            : 'inherit'
+                        : 'inherit'
+                      }}
+                    >
+                    <span style={{
+                        display:'inline-block', 
+                        width:'1em',
+                        height: '1em',
+                        marginRight: '0.3em',
+                        marginBottom: '-0.15em',
+                        backgroundColor: colors[`${i}.${key}`]
+                      }}></span>
                     {formatSerieValue(this.props.dimensions[key], dimension[key])} {variation[key] !== null ? `(${variation[key] - 1 > 0 ? '+':''}${(variation[key] - 1).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})})` : ''}
                   </TableCell>
                 )}
@@ -504,46 +581,66 @@ class Graph extends Component {
               )}
               </TableBody>
             </Table>
-            <ResponsiveContainer width="100%" maxWidth="100%" height={graphOptions.height?graphOptions.height:400} >
-              <Chart
-                  data={series}
-                  margin={{ top: 0, right: 0, left: 20, bottom: 10 }}>
-                <YAxis />
-                <XAxis
-                  dataKey={`date`}
-                  key={`date`}
-                  />
-                <Tooltip
-                  clasName={classes.tooltip}
-                  wrapperStyle={{ fontSize: 10 }}
-                  content={CustomTooltip(this.props.dimensions)}
-                  />
-                <CartesianGrid stroke="#f5f5f5" />
+            </div>
+            <div className={classes.paddedContent} >
+              <div style={{
+                paddingBottom: '30%', /* width/height Ratio */
+                position: 'relative',
+                height: 0
+              }} >
+                <div style={{
+                  position: 'absolute',
+                  top: '0',
+                  left: '0',
+                  width: '100%',
+                  height: '100%'
+                }}>
+                  <ResponsiveContainer>
+                    <Chart
+                        data={series}
+                        margin={{ top: 0, right: 0, left: 20, bottom: 10 }}>
+                      <YAxis />
+                      <XAxis
+                        dataKey={`date`}
+                        key={`date`}
+                        />
+                      <Tooltip
+                        clasName={classes.tooltip}
+                        wrapperStyle={{ fontSize: 10 }}
+                        content={CustomTooltip(this.props.dimensions)}
+                        />
+                      <CartesianGrid stroke="#f5f5f5" />
 
-                {series[0].dimensions.map((v, i) =>
-                  keys.map(key =>
-                    <SerieComponent
-                      key={`dimensions[${i}].`+key}
-                      dataKey={`dimensions[${i}].`+key}
-                      stackId={true?i:`dimensions[${i}].`+key}
-                      style={{position: 'relative'}}
-                      type={graphOptions.serieType}
-                      dot={false}
-                      {...(SerieComponent===Line
-                        ? { 
-                          stroke: colors[`${i}.${key}`],
-                          strokeWidth: 3
-                        }
-                        : { 
-                          fill: colors[`${i}.${key}`] 
-                        })
-                      }
-                      >
-                    </SerieComponent>
-                  )
-                )}
-              </Chart>
-          </ResponsiveContainer>
+                      {series.length 
+                          ? series[0].dimensions.map((v, i) =>
+                          keys.map(key =>
+                            <SerieComponent
+                              key={`dimensions[${i}].`+key}
+                              dataKey={`dimensions[${i}].`+key}
+                              stackId={this.state.graphStack?i:`dimensions[${i}].`+key}
+                              style={{position: 'relative'}}
+                              type={graphOptions.serieType}
+                              dot={false}
+                              {...(SerieComponent===Line || SerieComponent===Area
+                                ? { 
+                                  stroke: colors[`${i}.${key}`],
+                                  fill: colors[`${i}.${key}`],
+                                  strokeWidth: 3
+                                }
+                                : { 
+                                  fill: colors[`${i}.${key}`] 
+                                })
+                              }
+                              >
+                            </SerieComponent>
+                          )
+                        )
+                      : null}
+                    </Chart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
         </div>
       }}
       </Query>
@@ -662,6 +759,12 @@ class Graph extends Component {
         </RadioGroup>
       </FormControl>
 
+      <Divider variant="middle" />
+
+      <FormControl className={classes.formControl}>
+        <FormLabel>Empilement</FormLabel>
+        <FormControlLabel  control={<Checkbox onChange={this.handleChangeGraphStack.bind(this)} checked={this.state.graphStack} />} label="Empiler" />
+      </FormControl>
       
     </>
   }

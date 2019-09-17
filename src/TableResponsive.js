@@ -4,6 +4,8 @@ import { withStyles } from '@material-ui/core/styles';
 const styles = theme => ({
   root: {
     width: '100%',
+    maxWidth: '100%',
+
     marginTop: theme.spacing(3),
     overflowX: 'auto',
   }

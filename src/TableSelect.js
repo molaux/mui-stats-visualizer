@@ -13,10 +13,9 @@ import MenuItem from '@material-ui/core/MenuItem'
 import FormControl from '@material-ui/core/FormControl'
 import Select from '@material-ui/core/Select'
 import shouldUpdate from 'recompose/shouldUpdate'
+import FormControlLabel from '@material-ui/core/FormControlLabel'
 
-const checkPropsChange = (props, nextProps) => true ||
-  props.subDimensions.reduce((shouldUpdate, subDim) => shouldUpdate || 
-    ((nextProps.value.indexOf(nextProps.group.dimensions[subDim].key) !== -1) !== (props.value.indexOf(props.group.dimensions[subDim].key) !== -1)), false)
+const checkPropsChange = (props, nextProps) => props.subDimensions.reduce((shouldUpdate, subDim) => shouldUpdate || ((nextProps.value.indexOf(nextProps.group.dimensions[subDim].key) !== -1) !== (props.value.indexOf(props.group.dimensions[subDim].key) !== -1)), false)
 
 const RowGroup = shouldUpdate(checkPropsChange)(({ group, subDimensions, onChange, value }) => <TableRow>
     <TableCell style={{ fontWeight: group.depth === 1 ? 'bold' : 'normal' }}>
@@ -40,7 +39,8 @@ class TableSelect extends PureComponent {
     filter: '',
     depthFilter: '',
     groups: {},
-    filteredGroups: []
+    filteredGroups: [],
+    inSelectionFilter: false
   }
 
   handleChange(key, event) {
@@ -67,9 +67,23 @@ class TableSelect extends PureComponent {
     this.applyFilters()
   }
 
+  onChangeSelectionFilter(event) {
+    this.setState({
+      inSelectionFilter: event.target.checked,
+      currentPage: 0
+    })
+    this.applyFilters()
+  }
+
   handleChangePage(event, page) {
     this.setState({
       currentPage: page
+    })
+  }
+
+  handleChangeRowsPerPage(event) {
+    this.setState({
+      perPage: parseInt(event.target.value, 10)
     })
   }
 
@@ -134,24 +148,35 @@ class TableSelect extends PureComponent {
       const filterRegex = RegExp(state.filter, 'gi')
       return { 
         filteredGroups: Object.keys(state.groups).filter(groupKey => 
+          (!state.inSelectionFilter || Object.values(state.groups[groupKey].dimensions).reduce((result, dimension) => result || state.value.indexOf(dimension.key) !== -1, false)) &&
           filterRegex.test(state.groups[groupKey].label) &&
           (state.depthFilter === "" || state.groups[groupKey].depth === state.depthFilter))
       }
     })
   }
 
+  // Display selection
   render () {
     const { classes } = this.props
-    const { groups, subDimensions, value, filteredGroups, perPage, currentPage, depthFilter } = this.state
+    const { groups, subDimensions, value, filteredGroups, perPage, currentPage, depthFilter, inSelectionFilter } = this.state
    
     const slicedGroups = filteredGroups
       .slice(currentPage * perPage, (currentPage + 1) * perPage)
       .reduce((gps, key) => ({ ...gps, [key]: groups[key] }), {}) 
 
     return <>
-      <Table className={classes.table}>
+      <Table className={classes.table}  size="small">
         <TableHead>
           <TableRow>
+            <TableCell>
+            <FormControlLabel
+                control={<Checkbox
+                  onChange={this.onChangeSelectionFilter.bind(this)}
+                  checked={inSelectionFilter} />}
+                label="Filtrer les entrées sélectionnées"
+                labelPlacement="end"
+              />
+            </TableCell>
             <TableCell>
               <TextField
                 id="standard-search"
@@ -166,8 +191,9 @@ class TableSelect extends PureComponent {
               <FormControl margin="normal">
                 <InputLabel 
                   style={{whiteSpace: 'nowrap'}}
-                  shrink htmlFor="age-simple">Niveau des catégories</InputLabel>
+                  shrink htmlFor="level">Niveau des catégories</InputLabel>
                 <Select
+                  id="level"
                   value={depthFilter}
                   onChange={this.handleChangeDepthFilter.bind(this)}
                   displayEmpty
@@ -186,6 +212,7 @@ class TableSelect extends PureComponent {
               onChangePage={this.handleChangePage.bind(this)}
               page={currentPage}
               rowsPerPage={perPage}
+              onChangeRowsPerPage={this.handleChangeRowsPerPage.bind(this)}
               />
           </TableRow>
           <TableRow>
@@ -193,10 +220,14 @@ class TableSelect extends PureComponent {
               Série
             </TableCell>
             {subDimensions.map(dimension => <TableCell key={dimension}>
-              <Checkbox
-                onChange={this.onChangeSelectSubDim.bind(this, dimension)}
-                checked={this.isAllIncluded(value, this.getSubDimKeys(dimension))} />
-              {dimension}
+              <FormControlLabel
+                classes={{ label: classes.headSelectors }}
+                control={<Checkbox
+                  onChange={this.onChangeSelectSubDim.bind(this, dimension)}
+                  checked={this.isAllIncluded(value, this.getSubDimKeys(dimension))} />}
+                label={dimension}
+                labelPlacement="end"
+              />
             </TableCell>)}
           </TableRow>
         </TableHead>
@@ -215,6 +246,8 @@ class TableSelect extends PureComponent {
   }
 }
 
-export default withStyles(theme => {
-
-}, { withTheme: true })(TableSelect)
+export default withStyles(theme => ({
+  headSelectors: {
+    fontSize: '0.9em'
+  }
+}), { withTheme: true })(TableSelect)
