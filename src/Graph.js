@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Query, withApollo } from 'react-apollo'
+import { Query } from 'react-apollo'
 
 import {
   ResponsiveContainer,
@@ -18,19 +18,22 @@ import {
 import strtotime from 'locutus/php/datetime/strtotime'
 import TextField from '@material-ui/core/TextField'
 import Typography from '@material-ui/core/Typography'
-import Radio from '@material-ui/core/Radio';
-import Checkbox from '@material-ui/core/Checkbox';
-import RadioGroup from '@material-ui/core/RadioGroup';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import FormControl from '@material-ui/core/FormControl';
-import FormLabel from '@material-ui/core/FormLabel';
-import InputLabel from '@material-ui/core/InputLabel';
-import Input from '@material-ui/core/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
-import Chip from '@material-ui/core/Chip';
-import DateIcon from '@material-ui/icons/Timeline';
-import { MuiPickersUtilsProvider, DateTimePicker, DatePicker } from '@material-ui/pickers'
+import Radio from '@material-ui/core/Radio'
+import Checkbox from '@material-ui/core/Checkbox'
+import RadioGroup from '@material-ui/core/RadioGroup'
+import FormControlLabel from '@material-ui/core/FormControlLabel'
+import FormControl from '@material-ui/core/FormControl'
+import FormLabel from '@material-ui/core/FormLabel'
+import InputLabel from '@material-ui/core/InputLabel'
+import Input from '@material-ui/core/Input'
+import MenuItem from '@material-ui/core/MenuItem'
+import Select from '@material-ui/core/Select'
+import Chip from '@material-ui/core/Chip'
+import DateIcon from '@material-ui/icons/Timeline'
+import {
+  MuiPickersUtilsProvider,
+  DateTimePicker,
+  DatePicker } from '@material-ui/pickers'
 import KeyboardArrowLeft from '@material-ui/icons/KeyboardArrowLeft'
 import KeyboardArrowRight from '@material-ui/icons/KeyboardArrowRight'
 import AccessTime from '@material-ui/icons/AccessTime'
@@ -47,7 +50,7 @@ import TableRow from '@material-ui/core/TableRow'
 import TableHead from '@material-ui/core/TableHead'
 
 import DateFnsUtils from '@date-io/date-fns'
-import frLocale from "date-fns/locale/fr";
+import frLocale from "date-fns/locale/fr"
 
 import gql from 'graphql-tag'
 import { withStyles } from '@material-ui/core/styles'
@@ -55,8 +58,8 @@ import { format, startOfDay, startOfMonth } from 'date-fns'
 import ggChartColors from './ChartColors'
 import deepmerge from 'deepmerge'
 
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
+const ITEM_HEIGHT = 48
+const ITEM_PADDING_TOP = 8
 
 const MenuProps = {
   PaperProps: {
@@ -65,7 +68,7 @@ const MenuProps = {
       width: 250,
     },
   },
-};
+}
 
 function getStyles(key, keys, theme) {
   return {
@@ -73,7 +76,7 @@ function getStyles(key, keys, theme) {
       keys.indexOf(key) === -1
         ? theme.typography.fontWeightRegular
         : theme.typography.fontWeightMedium,
-  };
+  }
 }
 
 const styles = theme => ({
@@ -82,8 +85,10 @@ const styles = theme => ({
     padding: theme.spacing(2),
   },
   graph: {
+    position: 'relative',
     marginTop: theme.spacing(3),
-    marginBottom: theme.spacing(5)
+    marginBottom: theme.spacing(5),
+    boxSizing: 'border-box',
   },
   pie: {
     fontSize: 10
@@ -123,6 +128,9 @@ const styles = theme => ({
     marginBottom: theme.spacing(4),
   },
   paddedContent: {
+    position: 'relative',
+    boxSizing: 'border-box',
+    minWidth: '100%',
     paddingLeft: theme.spacing(3),
     paddingRight: theme.spacing(3)
   }
@@ -204,7 +212,7 @@ const formatSerieValue = (dimension, value) => {
   }
 }
 
-const CustomTooltip = dimensions => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
+const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
   let groupsByLabel = (payload || []).reduce((groups, serie) => {
     const dimensionKey = serie.dataKey.split('.')[0]
     const date = resolveObjectKeyChain(serie.payload, [ dimensionKey ]).date
@@ -223,7 +231,9 @@ const CustomTooltip = dimensions => ({ active, payload, label, clasName, wrapper
         {Object.keys(groupsByLabel).map(date => 
           (
             <div key={date}>
-              <Typography variant="subtitle2" component="p">{date}</Typography>
+              <Typography variant="subtitle2" component="p">{date}{summize
+                ? ` : ${formatSerieValue(dimensions[groupsByLabel[date][0].dataKey.split('.').slice(1).join('.')], groupsByLabel[date].reduce((sum, serie) => sum +  serie.value, 0))}`
+                : null}</Typography>
               {groupsByLabel[date].map(serie => {
                   const serieKey = serie.dataKey.split('.').slice(1).join('.')
                   return <p
@@ -259,7 +269,6 @@ class Graph extends Component {
     }
   }
   
-
   generateColors (keys) {
     let i = 0
     return keys.reduce((colors, key) => {
@@ -371,7 +380,7 @@ class Graph extends Component {
   /**
    * this.props.dimensions = {
    *   [category_dimension]: { // the dimension key
-   *     group: { // defines the group to wich dimension belongs
+   *     group: { // defines the group to witch dimension belongs to
    *       depth, // sets the level of category
    *       label, // sets the label of the category
    *       dimension, // sets the label of the dimension
@@ -607,7 +616,7 @@ class Graph extends Component {
                       <Tooltip
                         clasName={classes.tooltip}
                         wrapperStyle={{ fontSize: 10 }}
-                        content={CustomTooltip(this.props.dimensions)}
+                        content={CustomTooltip(this.props.dimensions, this.state.graphStack)}
                         />
                       <CartesianGrid stroke="#f5f5f5" />
 
@@ -647,13 +656,14 @@ class Graph extends Component {
 
       <Divider variant="middle" />
 
-      <FormControl className={classes.formControl}>
+      <FormControl className={classes.formControl} style={{minWidth: '100%'}}>
         <FormLabel>Dimensions</FormLabel>
         {dimensionsSelector === 'table'
           ? <TableSelect
               multiple
               initialValue={Object.keys(this.props.dimensions).slice(0, 1)}
               onChange={this.handleChangeKeys.bind(this)}
+              dimensionsGroupsComponent={this.props.dimensionsGroupsComponent || 'auto'}
               dimensions={this.props.dimensions}
             />
           : <Select

@@ -8,27 +8,78 @@ import { withStyles } from '@material-ui/core/styles'
 import Checkbox from '@material-ui/core/Checkbox'
 import TextField from '@material-ui/core/TextField'
 import TablePagination from '@material-ui/core/TablePagination'
+import Input from '@material-ui/core/Input'
 import InputLabel from '@material-ui/core/InputLabel'
 import MenuItem from '@material-ui/core/MenuItem'
 import FormControl from '@material-ui/core/FormControl'
+import ListItemText from '@material-ui/core/ListItemText'
 import Select from '@material-ui/core/Select'
-import shouldUpdate from 'recompose/shouldUpdate'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
 
-const checkPropsChange = (props, nextProps) => props.subDimensions.reduce((shouldUpdate, subDim) => shouldUpdate || ((nextProps.value.indexOf(nextProps.group.dimensions[subDim].key) !== -1) !== (props.value.indexOf(props.group.dimensions[subDim].key) !== -1)), false)
+const ITEM_HEIGHT = 48;
+const ITEM_PADDING_TOP = 8;
+const MenuProps = {
+  PaperProps: {
+    style: {
+      // maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      // width: 250,
+    },
+  },
+}
 
-const RowGroup = shouldUpdate(checkPropsChange)(({ group, subDimensions, onChange, value }) => <TableRow>
-    <TableCell style={{ fontWeight: group.depth === 1 ? 'bold' : 'normal' }}>
+const checkPropsChange = (props, nextProps) => props.dimensionsGroupsComponent === nextProps.dimensionsGroupsComponent &&
+  !props.subDimensions.reduce((shouldUpdate, subDim) => 
+    shouldUpdate || 
+      ((nextProps.value.indexOf(nextProps.group.dimensions[subDim].key) !== -1) !== (props.value.indexOf(props.group.dimensions[subDim].key) !== -1)),
+    false)
+
+const RowGroup = React.memo(({ 
+  classes, 
+  group, 
+  subDimensions, 
+  onChange, 
+  value,
+  dimensionsGroupsComponent }) => <TableRow>
+    <TableCell
+      style={{ fontWeight: group.depth === 1 ? 'bold' : 'normal' }}
+      colSpan={dimensionsGroupsComponent === 'expanded' ? 1 : 2 }
+      >
       {group.label}
     </TableCell>
-    {subDimensions.map(subDim => <TableCell key={subDim}>
-      <Checkbox
-        onChange={event => onChange(group.dimensions[subDim].key, event)}
-        value={group.dimensions[subDim].key}
-        checked={value.indexOf(group.dimensions[subDim].key) !== -1} />
-    </TableCell>
-    )}
-  </TableRow>)
+    {dimensionsGroupsComponent === 'expanded'
+      ? subDimensions.map(subDim => <TableCell key={group.dimensions[subDim].key}>
+        <Checkbox
+          onChange={event => onChange(group.dimensions[subDim].key, event)}
+          value={group.dimensions[subDim].key}
+          checked={value.indexOf(group.dimensions[subDim].key) !== -1} />
+      </TableCell>
+      )
+      : <TableCell  colSpan={50}>
+        <FormControl className={classes.formControl}>
+          <InputLabel htmlFor="select-multiple-checkbox">Dimensions</InputLabel>
+          <Select
+            multiple
+            autoWidth={true}
+            value={value.filter(key => Object.values(group.dimensions).map(subDim => subDim.key).indexOf(key) !== -1)}
+            onChange={event => onChange(event.target.value, event, subDimensions.map(subDim => group.dimensions[subDim].key))}
+            input={<Input id="select-multiple-checkbox" />}
+            renderValue={selected => Object.keys(group.dimensions).filter(key => selected.indexOf(group.dimensions[key].key) !== -1 ).join(', ') }
+            MenuProps={MenuProps}
+          >
+            {subDimensions.map(subDim => (
+              <MenuItem 
+                key={group.dimensions[subDim].key}
+                value={group.dimensions[subDim].key}>
+                <Checkbox checked={value.indexOf(group.dimensions[subDim].key) !== -1} />
+                <ListItemText primary={subDim} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </TableCell>
+    }
+  </TableRow>,
+  checkPropsChange)
 
 class TableSelect extends PureComponent {
   state = {
@@ -43,11 +94,15 @@ class TableSelect extends PureComponent {
     inSelectionFilter: false
   }
 
-  handleChange(key, event) {
-    const value = event.target.checked 
-    ? [ ...this.state.value, key ]
-    : this.state.value.filter(v => v!== key)
-    this.setState({ value })
+  handleChange(key, event, originalKeysSet) {
+    const value =
+      Array.isArray(key) ? 
+        [ ...this.state.value, ...key.filter(k => this.state.value.indexOf(k) === -1) ].filter(k => originalKeysSet.indexOf(k) === -1 || key.indexOf(k) !== -1)
+        // add array if keys (multi select) to state
+        : event.target.checked  
+          ? [ ...this.state.value, key ] // add key to state
+          : this.state.value.filter(v => v!== key)
+    this.setState({ value }) // remove key from state
     this.props.onChange(value)
   }
 
@@ -121,6 +176,12 @@ class TableSelect extends PureComponent {
     return this.state.filteredGroups.map(groupKey => this.state.groups[groupKey].dimensions[subDim].key)
   }
 
+  filterKeysFromGroup(groupKey, values) {
+    return Object.values(this.state.groups[groupKey].dimensions)
+      .map(({ key }) => key)
+      .filter(key => values.indexOf(key) !== -1)
+  }
+
   isAllIncluded(value, keys) {
     return keys.reduce((allIncluded, k) => allIncluded && value.indexOf(k) !== -1, true)
   }
@@ -134,11 +195,21 @@ class TableSelect extends PureComponent {
     }, value)
   }
 
-  onChangeSelectSubDim(subDim, event) {
-    const keys = this.getSubDimKeys(subDim)
-    const value = event.target.checked 
-    ? this.mergeValues(this.state.value, keys)
-    : this.state.value.filter(v => keys.indexOf(v) === -1)
+  onChangeSelectSubDim(subDim, event, originalSubdimensionsSet) {
+    let keys = []
+    let value = []
+    if (Array.isArray(subDim)) { // Collapsed mode - select
+      keys = subDim.reduce((all, subDim) => [ ...all, ...this.getSubDimKeys(subDim) ], [])
+      const originalSubdimensionsSetKeys = originalSubdimensionsSet.reduce((all, subDim) => [ ...all, ...this.getSubDimKeys(subDim) ], [])
+      value = this.mergeValues(this.state.value, keys).filter(v => originalSubdimensionsSetKeys.indexOf(v) === -1 || keys.indexOf(v) !== -1)
+
+    } else { // Expanded mode - checkboxes
+      keys = this.getSubDimKeys(subDim)
+      value = event.target.checked 
+        ? this.mergeValues(this.state.value, keys)
+        : this.state.value.filter(v => keys.indexOf(v) === -1)
+    }
+    
     this.setState({ value })
     this.props.onChange(value)
   }
@@ -158,12 +229,28 @@ class TableSelect extends PureComponent {
   // Display selection
   render () {
     const { classes } = this.props
-    const { groups, subDimensions, value, filteredGroups, perPage, currentPage, depthFilter, inSelectionFilter } = this.state
-   
+    const {
+      groups,
+      subDimensions,
+      value,
+      filteredGroups,
+      perPage,
+      currentPage,
+      depthFilter,
+      inSelectionFilter } = this.state
+    
     const slicedGroups = filteredGroups
       .slice(currentPage * perPage, (currentPage + 1) * perPage)
       .reduce((gps, key) => ({ ...gps, [key]: groups[key] }), {}) 
 
+    let { verticalSelectionLimit, dimensionsGroupsComponent } = this.props
+    dimensionsGroupsComponent = dimensionsGroupsComponent || 'auto'
+    dimensionsGroupsComponent = dimensionsGroupsComponent === 'expanded' ||
+      dimensionsGroupsComponent === 'auto' && subDimensions.length <= 5
+        ? 'expanded'
+        : 'collapsed'
+
+    verticalSelectionLimit = verticalSelectionLimit || 20
     return <>
       <Table className={classes.table}  size="small">
         <TableHead>
@@ -187,7 +274,9 @@ class TableSelect extends PureComponent {
                 margin="normal"
               />
             </TableCell>
-            <TableCell colSpan={2}>
+            <TableCell colSpan={dimensionsGroupsComponent === 'expanded'
+                ? 2
+                : 1 }>
               <FormControl margin="normal">
                 <InputLabel 
                   style={{whiteSpace: 'nowrap'}}
@@ -216,29 +305,60 @@ class TableSelect extends PureComponent {
               />
           </TableRow>
           <TableRow>
-            <TableCell>
+            <TableCell colSpan={dimensionsGroupsComponent === 'expanded' ? 1 : 2 }>
               Série
             </TableCell>
-            {subDimensions.map(dimension => <TableCell key={dimension}>
-              <FormControlLabel
-                classes={{ label: classes.headSelectors }}
-                control={<Checkbox
-                  onChange={this.onChangeSelectSubDim.bind(this, dimension)}
-                  checked={this.isAllIncluded(value, this.getSubDimKeys(dimension))} />}
-                label={dimension}
-                labelPlacement="end"
-              />
-            </TableCell>)}
+            {dimensionsGroupsComponent === 'expanded'
+                ? subDimensions.map(dimension => <TableCell key={dimension}>
+                  <FormControlLabel
+                    classes={{ label: classes.headSelectors }}
+                    control={<Checkbox
+                      disabled={Object.keys(filteredGroups).length > verticalSelectionLimit}
+                      onChange={this.onChangeSelectSubDim.bind(this, dimension)}
+                      checked={this.isAllIncluded(value, this.getSubDimKeys(dimension))}
+                      />}
+                    label={dimension}
+                    labelPlacement="end"
+                  />
+                </TableCell>)
+                : <TableCell colSpan={50}>
+                <FormControl className={classes.formControl}>
+                  <InputLabel htmlFor="select-multiple-checkbox">Dimensions</InputLabel>
+                  <Select
+                    multiple
+                    autoWidth={true}
+                    disabled={Object.keys(filteredGroups).length > verticalSelectionLimit}
+                    value={subDimensions.filter(dimension =>
+                      this.isAllIncluded(value, this.getSubDimKeys(dimension)))}
+                    onChange={event => this.onChangeSelectSubDim(event.target.value, event, subDimensions)}
+                    input={<Input id="select-multiple-checkbox" />}
+                    renderValue={selected => subDimensions.filter(dimension => this.isAllIncluded(value, this.getSubDimKeys(dimension))).join(', ') }
+                    MenuProps={MenuProps}
+                  >
+                    {subDimensions.map(subDim => (
+                      <MenuItem 
+                        key={subDim}
+                        value={subDim}>
+                        <Checkbox checked={this.isAllIncluded(value, this.getSubDimKeys(subDim))} />
+                        <ListItemText primary={subDim} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </TableCell>
+            }
           </TableRow>
         </TableHead>
         <TableBody>
           {Object.keys(slicedGroups).map(groupKey =>
             <RowGroup
               key={groupKey}
+              classes={classes}
               group={groups[groupKey]}
               subDimensions={subDimensions}
+              dimensionsGroupsComponent={dimensionsGroupsComponent}
               onChange={this.handleChange.bind(this)}
-              value={value}
+              value={this.filterKeysFromGroup(groupKey, value)}
               />)}
         </TableBody>
       </Table>
@@ -249,5 +369,13 @@ class TableSelect extends PureComponent {
 export default withStyles(theme => ({
   headSelectors: {
     fontSize: '0.9em'
+  },
+  table: {
+    minWidth: '100%'
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    minWidth: 120,
+    maxWidth: 300,
   }
 }), { withTheme: true })(TableSelect)
