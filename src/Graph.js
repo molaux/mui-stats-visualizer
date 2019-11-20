@@ -355,7 +355,7 @@ class Graph extends Component {
   }
 
   handleDeleteDate(j) {
-    this.setState(state => state.dates > 1 
+    this.setState(state => state.dates.length > 1 
       ? {
         autoConfig: null,
         dates: state.dates.filter((_, i) => i !== j)
