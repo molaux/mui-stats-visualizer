@@ -29,6 +29,7 @@ import Input from '@material-ui/core/Input'
 import MenuItem from '@material-ui/core/MenuItem'
 import Select from '@material-ui/core/Select'
 import Chip from '@material-ui/core/Chip'
+import Box from '@material-ui/core/Box'
 import DateIcon from '@material-ui/icons/Timeline'
 import {
   MuiPickersUtilsProvider,
@@ -57,6 +58,7 @@ import { withStyles } from '@material-ui/core/styles'
 import { format, startOfDay, startOfMonth } from 'date-fns'
 import ggChartColors from './ChartColors'
 import deepmerge from 'deepmerge'
+import plural from 'pluralize-fr'
 
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
@@ -212,16 +214,72 @@ const formatSerieValue = (dimension, value) => {
   }
 }
 
+const formatShareValue = (value) => {
+  if (value < 1/8) {
+    return `⚪ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
+  } else if (value < 3/8) {
+    return `◔ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
+  } else if (value < 5/8) {
+    return `◑ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
+  } else if (value < 7/8) {
+    return `◕ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
+  } else {
+    return `⚫ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
+  }
+}
+
+const Share = ({value}) => <Box component="span" style={{
+    whiteSpace: 'nowrap'
+  }}>{formatShareValue(value)}</Box>
+
+const formatVariationValue = value => `${value > 0 ? '⬈' : '⬊'} ${Math.abs(value).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
+
+const Variation = ({value}) => <Box component="span" style={{
+    whiteSpace: 'nowrap',
+    color: value !== null
+      ? value > 0
+        ? 'green'
+        : value< 0
+          ? 'red'
+          : 'inherit'
+      : 'inherit'
+  }}>{formatVariationValue(value)}</Box>
+
 const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
-  let groupsByLabel = (payload || []).reduce((groups, serie) => {
-    const dimensionKey = serie.dataKey.split('.')[0]
-    const date = resolveObjectKeyChain(serie.payload, [ dimensionKey ]).date
+  let groupsByLabel = (payload || []).reduce((groups, point) => {
+    const dimensionKey = point.dataKey.split('.')[0]
+    const date = resolveObjectKeyChain(point.payload, [ dimensionKey ]).date
     if (groups[date] === undefined) {
-      groups[date] = [
-        serie
-      ]
+      groups[date] = {
+        points: [ {
+          ...point,
+          variation: Object.keys(groups).length > 0
+            ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 1]].points[0].value
+            : null,
+          share: null
+        } ],
+        total: point.value,
+        variation: Object.keys(groups).length > 0
+          ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 1]].total
+          : null
+      }
     } else {
-      groups[date].push(serie)
+      groups[date].points.push({
+        ...point,
+        variation: Object.keys(groups).length > 1
+          ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 2]].points[groups[date].points.length].value
+          : null,
+        share: null
+      })
+      groups[date].total += point.value
+      groups[date].variation =  Object.keys(groups).length > 1
+        ? groups[date].total / groups[Object.keys(groups)[Object.keys(groups).length - 2]].total
+        : null
+      if (summize) {
+        for (const point of groups[date].points) {
+          point.share = point.value / groups[date].total
+        }
+      }
     }
     return groups
   }, {})
@@ -231,15 +289,31 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
         {Object.keys(groupsByLabel).map(date => 
           (
             <div key={date}>
-              <Typography variant="subtitle2" component="p">{date}{summize
-                ? ` : ${formatSerieValue(dimensions[groupsByLabel[date][0].dataKey.split('.').slice(1).join('.')], groupsByLabel[date].reduce((sum, serie) => sum +  serie.value, 0))}`
-                : null}</Typography>
-              {groupsByLabel[date].map(serie => {
-                  const serieKey = serie.dataKey.split('.').slice(1).join('.')
-                  return <p
-                    key={serie.dataKey}
-                    style={{color: serie.stroke ? serie.stroke : serie.fill}}>
-                    {dimensions[serieKey].title} : {formatSerieValue(dimensions[serieKey], serie.value)}
+              <Typography variant="subtitle2" component="p">
+                {date}
+                {summize
+                  ? ` : ${formatSerieValue(dimensions[groupsByLabel[date].points[0].dataKey.split('.').slice(1).join('.')], groupsByLabel[date].total)}`
+                  : '' }
+                {summize && groupsByLabel[date].variation !== null 
+                  ? <><span> (</span><Variation value={groupsByLabel[date].variation - 1} /><span>)</span></>
+                  : null}
+              </Typography>
+              {groupsByLabel[date].points.map(point => {
+                const serieKey = point.dataKey.split('.').slice(1).join('.')
+                return <p
+                    key={point.dataKey}
+                    style={{color: point.stroke ? point.stroke : point.fill}}>
+                    {dimensions[serieKey].title} : {formatSerieValue(dimensions[serieKey], point.value)}
+                    {point.variation !== null || point.share !== null
+                      ? <><span> (</span>{
+                        point.share !== null ? <Share value={point.share} /> : null
+                      }{
+                        point.variation !== null && point.share !== null ? ' ╱ ' : null 
+                      }{
+                        point.variation !== null ? <Variation value={point.variation - 1} /> : null 
+                      }<span>)</span></>
+                      : null
+                    }
                   </p>
                 })
               }
@@ -284,8 +358,8 @@ class Graph extends Component {
 
   dateFormatter(granularity) {
     switch (granularity) {
-      case 'hour': return 'dd/MM/yyyy, HH:mm'
-      case 'day': return 'dd/MM/yyyy'
+      case 'hour': return 'EEE dd/MM/yyyy, HH:mm'
+      case 'day': return 'EEE dd/MM/yyyy'
       case 'week': return 'RRRR\', semaine \'II'
       case 'month': return 'MM/yyyy'
       case 'year': return 'yyyy'
@@ -471,6 +545,7 @@ class Graph extends Component {
       {({ loading, error, data }) => {
         let series = []
         let reduction = []
+        let dimensionsTypesAreHomogenes = true
         if (!loading) {
           const computedKeys = keys.filter(key => this.props.dimensions[key].series !== undefined)
 
@@ -502,10 +577,17 @@ class Graph extends Component {
               o[key] = dimensionSerie
                 .map(entry => resolveObjectKeyChain(entry, key.split('.')))
                 .reduce(this.props.dimensions[key].reducer, null)
-              o[key] = o[key] !== null && typeof o[key] === 'object' ? o[key].value : o[key]
+              o[key] = o[key] !== null && typeof o[key] === 'object'
+                ? o[key].value
+                : o[key]
               return o
             }, {})
           })
+
+          dimensionsTypesAreHomogenes = Object.keys(reduction[0]).reduce((type, key) =>
+            type === this.props.dimensions[key].type
+              ? type
+              : null, this.props.dimensions[Object.keys(reduction[0])[0]].type)
           
         }
         return <div className={classes.graph}>
@@ -545,47 +627,85 @@ class Graph extends Component {
               </TableHead>
               <TableBody>
               {reduction.reduce(
-                (lastSeries, serie) => [...lastSeries, { dimension: serie, variation: Object.keys(serie).reduce(
+                (lastSeries, serie) => [
+                  ...lastSeries, {
+                  dimensions: serie,
+                  total: Object.keys(serie).reduce((total, key) => total + serie[key], 0),
+                  totalVariation: ! lastSeries.length 
+                    ? null
+                    : Object.keys(serie).reduce((total, key) => total + serie[key], 0) / lastSeries[lastSeries.length -1].total,
+                  variation: Object.keys(serie).reduce(
                     (o, key) => {
                       if (! lastSeries.length) {
                         o[key] = null
                       } else {
-                        o[key] = lastSeries[lastSeries.length -1].dimension[key] 
-                          ? serie[key] / lastSeries[lastSeries.length -1].dimension[key]
+                        o[key] = lastSeries[lastSeries.length -1].dimensions[key] 
+                          ? serie[key] / lastSeries[lastSeries.length -1].dimensions[key]
                           : null
                       }
                       return o
                     },
                     {}
-                  ) }],
+                  ) }
+                ],
                 []
-              ).map(({dimension, variation}, i) => <TableRow key={i}>
-                <TableCell>{format(this.state.dates[i], this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}</TableCell>
-                {Object.keys(dimension).map(key => 
-                  <TableCell 
-                    key={`${i}-${key}`} 
-                    style={{
-                      whiteSpace: 'nowrap',
-                      color: variation[key] !== null
-                        ? variation[key] - 1 > 0
-                          ? 'green'
-                          : variation[key] - 1 < 0
-                            ? 'red'
-                            : 'inherit'
-                        : 'inherit'
-                      }}
-                    >
-                    <span style={{
-                        display:'inline-block', 
-                        width:'1em',
-                        height: '1em',
-                        marginRight: '0.3em',
-                        marginBottom: '-0.15em',
-                        backgroundColor: colors[`${i}.${key}`]
-                      }}></span>
-                    {formatSerieValue(this.props.dimensions[key], dimension[key])} {variation[key] !== null ? `(${variation[key] - 1 > 0 ? '+':''}${(variation[key] - 1).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})})` : ''}
+              ).map(({dimensions, variation, total, totalVariation}, i) =>
+                <TableRow key={i}>
+                  <TableCell>
+                    <Typography variant="h6" gutterBottom= {this.state.graphStack && dimensionsTypesAreHomogenes}>
+                    {format(this.state.dates[i], this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {this.state.durationAmount} {(this.state.durationAmount > 1 ? plural(timeAggregations[this.state.durationUnit]) : timeAggregations[this.state.durationUnit]).toLowerCase()}
+                    </Typography>
+                    {/* Check if graph is stacked and dimensions have same type */}
+                    {this.state.graphStack && dimensionsTypesAreHomogenes
+                            ? <Box style={{
+                              whiteSpace: 'nowrap',
+                              color: totalVariation !== null
+                                ? totalVariation - 1 > 0
+                                  ? 'green'
+                                  : totalVariation - 1 < 0
+                                    ? 'red'
+                                    : 'inherit'
+                                : 'inherit'
+                              }}>
+                              {formatSerieValue(this.props.dimensions[Object.keys(dimensions)[0]], total)}
+                              {totalVariation !== null 
+                                ? ` (${formatVariationValue(totalVariation - 1)})`
+                                : null}
+                            </Box>
+                            : null }
                   </TableCell>
-                )}
+                  {Object.keys(dimensions).map(key => 
+                    <TableCell 
+                      key={`${i}-${key}`} 
+                      style={{
+                        whiteSpace: 'nowrap',
+                        color: variation[key] !== null
+                          ? variation[key] - 1 > 0
+                            ? 'green'
+                            : variation[key] - 1 < 0
+                              ? 'red'
+                              : 'inherit'
+                          : 'inherit'
+                        }}
+                      >
+                      <span style={{
+                          display:'inline-block', 
+                          width:'1em',
+                          height: '1em',
+                          marginRight: '0.3em',
+                          marginBottom: '-0.15em',
+                          backgroundColor: colors[`${i}.${key}`]
+                        }}></span>
+                      {formatSerieValue(this.props.dimensions[key], dimensions[key])}
+                      {variation[key] !== null || (this.state.graphStack && dimensionsTypesAreHomogenes)
+                        ? ` (${this.state.graphStack && dimensionsTypesAreHomogenes
+                          ? formatShareValue(dimensions[key] / total)
+                          : ''}${variation[key] !== null
+                          ? `${this.state.graphStack && dimensionsTypesAreHomogenes ? ' ╱ ': ''}${formatVariationValue(variation[key] - 1)}`
+                          : ''})`
+                        : null}
+                    </TableCell>
+                  )}
                 </TableRow>
               )}
               </TableBody>
@@ -607,11 +727,20 @@ class Graph extends Component {
                   <ResponsiveContainer>
                     <Chart
                         data={series}
-                        margin={{ top: 0, right: 0, left: 20, bottom: 10 }}>
+                        margin={{
+                          top: 0,
+                          right: 0,
+                          left: 20,
+                          bottom: ['hour', 'day', 'week'].includes(this.state.granularity)
+                            ? 90
+                            : 50 }}
+                      >
                       <YAxis />
                       <XAxis
                         dataKey={`date`}
                         key={`date`}
+                        angle={-30}
+                        textAnchor="end" 
                         />
                       <Tooltip
                         clasName={classes.tooltip}
@@ -749,7 +878,7 @@ class Graph extends Component {
           }}
         >
           {Object.keys(timeAggregations).map(taKey => 
-            <MenuItem key={taKey} value={taKey}>{timeAggregations[taKey]}</MenuItem>
+            <MenuItem key={taKey} value={taKey}>{this.state.durationAmount > 1 ? plural(timeAggregations[taKey]) : timeAggregations[taKey]}</MenuItem>
           )}
         </Select>
       </FormControl>
