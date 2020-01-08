@@ -31,6 +31,8 @@ import Select from '@material-ui/core/Select'
 import Chip from '@material-ui/core/Chip'
 import Box from '@material-ui/core/Box'
 import DateIcon from '@material-ui/icons/Timeline'
+import useMediaQuery from '@material-ui/core/useMediaQuery';
+
 import {
   MuiPickersUtilsProvider,
   DateTimePicker,
@@ -82,10 +84,6 @@ function getStyles(key, keys, theme) {
 }
 
 const styles = theme => ({
-  root: {
-    flexGrow: 1,
-    padding: theme.spacing(2),
-  },
   graph: {
     position: 'relative',
     marginTop: theme.spacing(3),
@@ -109,6 +107,11 @@ const styles = theme => ({
   },
   formControl: {
     padding: theme.spacing(3),
+    [theme.breakpoints.down('sm')]: {
+      padding: 0,
+      paddingTop: theme.spacing(1),
+      paddingBottom: theme.spacing(1)
+    },
     maxWidth: '100%',
     boxSizing: 'border-box',
   },
@@ -133,8 +136,28 @@ const styles = theme => ({
     position: 'relative',
     boxSizing: 'border-box',
     minWidth: '100%',
+    marginTop: theme.spacing(1),
     paddingLeft: theme.spacing(3),
-    paddingRight: theme.spacing(3)
+    paddingRight: theme.spacing(3),
+    [theme.breakpoints.down('sm')]: {
+      paddingLeft: 0,
+      paddingRight: 0
+    },
+  },
+  ratioContainer: {
+    paddingBottom: '30%', /* width/height Ratio */
+    position: 'relative',
+    height: 0,
+    [theme.breakpoints.down('md')]: {
+      paddingBottom: '70%', /* width/height Ratio */
+    },
+  },
+  fullContainer: {
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%'
   }
 })
 
@@ -471,7 +494,7 @@ class Graph extends Component {
    * }
    */
   render() { 
-    let { classes, graphOptions, theme, dimensionsSelector, autoConfigs, timeAggregations } = this.props
+    let { classes, graphOptions, theme, dimensionsSelector, autoConfigs, timeAggregations, smUpWidth } = this.props
     
     if ( !graphOptions ) {
       graphOptions = { serieType: 'linear' }
@@ -652,8 +675,8 @@ class Graph extends Component {
               ).map(({dimensions, variation, total, totalVariation}, i) =>
                 <TableRow key={i}>
                   <TableCell>
-                    <Typography variant="h6" gutterBottom= {this.state.graphStack && dimensionsTypesAreHomogenes}>
-                    {format(this.state.dates[i], this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {this.state.durationAmount} {(this.state.durationAmount > 1 ? plural(timeAggregations[this.state.durationUnit]) : timeAggregations[this.state.durationUnit]).toLowerCase()}
+                    <Typography variant={smUpWidth ? "h6" : "subtitle2"} gutterBottom={this.state.graphStack && dimensionsTypesAreHomogenes}>
+                    {format(this.state.dates[i], this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {this.state.durationAmount}&nbsp;{(this.state.durationAmount > 1 ? plural(timeAggregations[this.state.durationUnit]) : timeAggregations[this.state.durationUnit]).toLowerCase()}
                     </Typography>
                     {/* Check if graph is stacked and dimensions have same type */}
                     {this.state.graphStack && dimensionsTypesAreHomogenes
@@ -712,18 +735,8 @@ class Graph extends Component {
             </Table>
             </div>
             <div className={classes.paddedContent} >
-              <div style={{
-                paddingBottom: '30%', /* width/height Ratio */
-                position: 'relative',
-                height: 0
-              }} >
-                <div style={{
-                  position: 'absolute',
-                  top: '0',
-                  left: '0',
-                  width: '100%',
-                  height: '100%'
-                }}>
+              <div className={classes.ratioContainer} >
+                <div className={classes.fullContainer}>
                   <ResponsiveContainer>
                     <Chart
                         data={series}
@@ -731,9 +744,13 @@ class Graph extends Component {
                           top: 0,
                           right: 0,
                           left: 20,
-                          bottom: ['hour', 'day', 'week'].includes(this.state.granularity)
-                            ? 90
-                            : 50 }}
+                          bottom: smUpWidth
+                            ? ['hour', 'day', 'week'].includes(this.state.granularity)
+                              ? 90
+                              : 50
+                            : ['hour', 'day', 'week'].includes(this.state.granularity)
+                            ? 65
+                            : 45 }}
                       >
                       <YAxis />
                       <XAxis
@@ -857,7 +874,7 @@ class Graph extends Component {
         </Select>
       </FormControl>
       
-      <FormControl className={classes.formControl}>
+      <FormControl className={classes.formControl} style={{marginLeft: theme.spacing(1)}}>
         <FormLabel>Durée</FormLabel>
         <TextField
           id="duration-amount"
@@ -909,4 +926,4 @@ class Graph extends Component {
   }
 }
  
-export default withStyles(styles, { withTheme: true })(Graph)
+export default withStyles(styles, { withTheme: true })(props => <Graph smUpWidth={useMediaQuery(props.theme.breakpoints.up('sm'))} {...props}/>)
