@@ -24,13 +24,14 @@ import RadioGroup from '@material-ui/core/RadioGroup'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
 import FormControl from '@material-ui/core/FormControl'
 import FormLabel from '@material-ui/core/FormLabel'
-import InputLabel from '@material-ui/core/InputLabel'
+// import InputLabel from '@material-ui/core/InputLabel'
 import Input from '@material-ui/core/Input'
 import MenuItem from '@material-ui/core/MenuItem'
 import Select from '@material-ui/core/Select'
 import Chip from '@material-ui/core/Chip'
 import Box from '@material-ui/core/Box'
 import DateIcon from '@material-ui/icons/Timeline'
+import DeleteIcon from '@material-ui/icons/Cancel'
 import useMediaQuery from '@material-ui/core/useMediaQuery';
 
 import {
@@ -56,11 +57,22 @@ import DateFnsUtils from '@date-io/date-fns'
 import frLocale from "date-fns/locale/fr"
 
 import gql from 'graphql-tag'
-import { withStyles } from '@material-ui/core/styles'
+import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
 import { format, startOfDay, startOfMonth } from 'date-fns'
 import ggChartColors from './ChartColors'
 import deepmerge from 'deepmerge'
 import plural from 'pluralize-fr'
+
+import { createMuiTheme } from '@material-ui/core'
+
+const darkTheme = createMuiTheme({
+  palette: {
+    type: 'dark',
+  },
+  typography: {
+    useNextVariants: true,
+  }
+});
 
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
@@ -126,8 +138,12 @@ const styles = theme => ({
     margin: 2,
   },
   fatChip: {
-    height: 'auto',
-    padding: theme.spacing(1, 0)
+    height: '5em',
+    padding: theme.spacing(1, 0),
+    backgroundColor: theme.palette.primary.main,
+    '&:focus': {
+      backgroundColor: theme.palette.primary.main
+    }
   },
   table: {
     marginBottom: theme.spacing(4),
@@ -186,40 +202,46 @@ const resolveObjectKeyChain = (o, keyChain) => keyChain
     }
   }, o)
 
-const DateTimeChip = ({ formatter, granularity, classes, onDelete, onChange, date }) => <Chip
-    icon={<DateIcon />}
-    classes={{root: classes.fatChip}}
-    label={granularity === 'hour'
-      ? <DateTimePicker
-        label="Début de la série"
-        value={date}
-        disableFuture
-        autoOk
-        labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
-        ampm={false}
-        onAccept={onChange}
-        onChange={() => null}
-        leftArrowIcon={<KeyboardArrowLeft />}
-        rightArrowIcon={<KeyboardArrowRight />}
-        dateRangeIcon={<DateRange />}
-        timeIcon={<AccessTime />}
-        />
-      : <DatePicker
-        label="Début de la série"
-        value={date}
-        disableFuture
-        autoOk
-        labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
-        onAccept={onChange}
-        onChange={() => null}
-        leftArrowIcon={<KeyboardArrowLeft />}
-        rightArrowIcon={<KeyboardArrowRight />}
-        />}
-    onDelete={onDelete}
-    className={classes.chip}
-    variant="outlined"
-    color="primary"
-  />
+const DateTimeChip = withStyles(styles, { withTheme: true })(({ formatter, granularity, classes, onDelete, onChange, date, theme }) => <MuiThemeProvider theme={darkTheme}> 
+    <Chip
+      icon={<DateIcon style={{color:'white'}} />}
+      classes={{
+        colorPrimary: classes.fatChip,
+        clickableColorPrimary: classes.fatChip,
+        deletableColorPrimary: classes.fatChip
+      }}
+      label={granularity === 'hour'
+        ? <DateTimePicker
+          label="Début de la série"
+          value={date}
+          disableFuture
+          autoOk
+          labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
+          ampm={false}
+          onAccept={onChange}
+          onChange={() => null}
+          leftArrowIcon={<KeyboardArrowLeft />}
+          rightArrowIcon={<KeyboardArrowRight />}
+          dateRangeIcon={<DateRange />}
+          timeIcon={<AccessTime />}
+          />
+        : <DatePicker
+          label="Début de la série"
+          value={date}
+          disableFuture
+          autoOk
+          labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
+          onAccept={onChange}
+          onChange={() => null}
+          leftArrowIcon={<KeyboardArrowLeft />}
+          rightArrowIcon={<KeyboardArrowRight />}
+          />}
+      onDelete={onDelete}
+      deleteIcon={<DeleteIcon />}
+      className={classes.chip}
+      color="primary"
+    />
+  </MuiThemeProvider>)
 
 const formatSerieValue = (dimension, value) => {
   if (value === null) {
@@ -842,6 +864,17 @@ class Graph extends Component {
         <MuiPickersUtilsProvider utils={DateFnsUtils} locale={frLocale}>
           <FormLabel>Séries temporelles</FormLabel>
           <div className={classes.datesContainer}>
+            <Chip
+              label={<AddIcon />}
+              onClick={this.handleAddDate.bind(this)}
+              classes={{
+                colorPrimary: classes.fatChip,
+                clickableColorPrimary: classes.fatChip,
+                deletableColorPrimary: classes.fatChip
+              }}
+              className={classes.chip}
+              color="primary"
+            />
             {dates.map((date, i) => <DateTimeChip 
               key={i}
               date={date}
@@ -850,9 +883,7 @@ class Graph extends Component {
               classes={classes} 
               onChange={this.handleChangeDate.bind(this, i)} 
               onDelete={this.handleDeleteDate.bind(this, i)} />)}
-            <Fab color="primary" aria-label="Add" className={classes.fab} onClick={this.handleAddDate.bind(this)}>
-              <AddIcon />
-            </Fab>
+           
           </div>
         </MuiPickersUtilsProvider>
       </div>
