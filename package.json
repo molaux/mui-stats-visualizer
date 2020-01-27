@@ -4,8 +4,8 @@
   "description": "A macro component that configures, fetches and display stats data",
   "main": "build/index.js",
   "scripts": {
-    "start": "webpack --watch",
-    "build": "webpack  --display-modules"
+    "start": "webpack --mode=production --watch",
+    "build": "webpack --mode=production --display-modules"
   },
   "dependencies": {
     "deepmerge": "^4.2.2",
@@ -25,7 +25,8 @@
     "react": "^16.12.0",
     "react-apollo": "^3.1.3",
     "react-dom": "^16.12.0",
-    "react-scripts": "3.3.0"
+    "react-scripts": "3.3.0",
+    "react-router-dom": "5.1.2"
   },
   "keywords": [
     "react",

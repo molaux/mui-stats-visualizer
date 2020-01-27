@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { Query } from 'react-apollo'
-
+import { Route, withRouter } from 'react-router-dom'
 import {
   ResponsiveContainer,
   XAxis,
@@ -24,7 +24,6 @@ import RadioGroup from '@material-ui/core/RadioGroup'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
 import FormControl from '@material-ui/core/FormControl'
 import FormLabel from '@material-ui/core/FormLabel'
-// import InputLabel from '@material-ui/core/InputLabel'
 import Input from '@material-ui/core/Input'
 import MenuItem from '@material-ui/core/MenuItem'
 import Select from '@material-ui/core/Select'
@@ -42,7 +41,6 @@ import KeyboardArrowLeft from '@material-ui/icons/KeyboardArrowLeft'
 import KeyboardArrowRight from '@material-ui/icons/KeyboardArrowRight'
 import AccessTime from '@material-ui/icons/AccessTime'
 import DateRange from '@material-ui/icons/DateRange'
-import Fab from '@material-ui/core/Fab'
 import AddIcon from '@material-ui/icons/Add'
 import Divider from '@material-ui/core/Divider'
 
@@ -58,13 +56,12 @@ import frLocale from "date-fns/locale/fr"
 
 import gql from 'graphql-tag'
 import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
-import { format, startOfDay, startOfMonth } from 'date-fns'
+import { format } from 'date-fns'
 import ggChartColors from './ChartColors'
 import deepmerge from 'deepmerge'
 import plural from 'pluralize-fr'
 
 import { createMuiTheme } from '@material-ui/core'
-
 const darkTheme = createMuiTheme({
   palette: {
     type: 'dark',
@@ -72,7 +69,7 @@ const darkTheme = createMuiTheme({
   typography: {
     useNextVariants: true,
   }
-});
+})
 
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
@@ -376,16 +373,17 @@ class Graph extends Component {
     const { autoConfigs, defaultConfig } = this.props
     this.state = { 
       granularity: autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day',
-      timeStr: '',
-      testDate: null,
       graphType: 'line',
       graphStack: false,
       keys: [],
+      dimensions: {},
       autoConfig: defaultConfig,
       durationUnit: autoConfigs[defaultConfig].durationUnit,
       durationAmount: autoConfigs[defaultConfig].durationAmount,
       dates: autoConfigs[defaultConfig].dates()
     }
+    console.log('V: init')
+
   }
   
   generateColors (keys) {
@@ -461,6 +459,8 @@ class Graph extends Component {
         autoConfig: null
       }
     })
+
+    
   }
 
   handleAddDate() {
@@ -485,14 +485,45 @@ class Graph extends Component {
       })
   }
 
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    console.log('V: did update')
+    if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
+      console.log('V: pushing new url')
+      // this.props.history.push(`${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
+    }
+  }
+
+  // shouldComponentUpdate(nextProps, nextState) {
+  //   console.log('shouldUpdate?', JSON.stringify(nextState) !== JSON.stringify(this.state) || nextProps.dimensions !== this.props.dimensions)
+  //   return JSON.stringify(nextState) !== JSON.stringify(this.state)
+  //     || nextProps.dimensions !== this.props.dimensions;
+  // }
+
   static getDerivedStateFromProps(props, state) {
-    if (state.keys.length === 0) {
-      return {
+    console.log('V: gdsfp - ', state.keys.length === 0, props.dimensions !== state.dimensions)
+    return props.dimensions !== state.dimensions
+      ? {
         ...state,
-        keys: Object.keys(props.dimensions).slice(0, 1)
+        keys: state.keys.length === 0 ? Object.keys(props.dimensions).slice(0, 1) : state.keys,
+        dimensions: props.dimensions
       }
-    } else {
-      return null
+      : null
+  }
+
+  componentDidMount () {
+    console.log('V: did mount')
+    let urlConfiguration = {}
+    if (this.props.match.params.configuration) {
+      console.log('V: did mount with config')
+
+      urlConfiguration = JSON.parse(decodeURIComponent(this.props.match.params.configuration))
+      if (Array.isArray(urlConfiguration.dates)) {
+        urlConfiguration.dates = urlConfiguration.dates.map(strDate => new Date(strDate))
+      }
+      this.setState(state => ({
+        ...state,
+        ...urlConfiguration
+      }))
     }
   }
 
@@ -575,6 +606,8 @@ class Graph extends Component {
         dimensionsSelector = 'select'
       }
     }
+
+    console.log('V: render')
     
     // TODO: colors and stacks
     return <>
@@ -591,6 +624,8 @@ class Graph extends Component {
         let series = []
         let reduction = []
         let dimensionsTypesAreHomogenes = true
+        console.log(loading ? 'loading' : 'computing')
+
         if (!loading) {
           const computedKeys = keys.filter(key => this.props.dimensions[key].series !== undefined)
 
@@ -635,6 +670,7 @@ class Graph extends Component {
               : null, this.props.dimensions[Object.keys(reduction[0])[0]].type)
           
         }
+        console.log('rendering')
         return <div className={classes.graph}>
             <FormControl className={classes.formControl}>
               <FormLabel htmlFor="autoconfig">Pré-configuration</FormLabel>
@@ -957,4 +993,14 @@ class Graph extends Component {
   }
 }
  
-export default withStyles(styles, { withTheme: true })(props => <Graph smUpWidth={useMediaQuery(props.theme.breakpoints.up('sm'))} {...props}/>)
+export default withRouter(routerProps =>
+    <Route 
+      path={`${routerProps.match.path}/:configuration?`} 
+      component={withStyles(styles, { withTheme: true })(styleProps => 
+        <Graph 
+          smUpWidth={useMediaQuery(styleProps.theme.breakpoints.up('sm'))} 
+          prefixPath={routerProps.match.path}
+          {...routerProps}
+          {...styleProps}
+          />)
+      }/>)
