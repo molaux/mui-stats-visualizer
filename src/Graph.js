@@ -1,5 +1,4 @@
-import React, { Component } from 'react'
-import { Query } from 'react-apollo'
+import React, { Component, useState, useEffect } from 'react'
 import { Route, withRouter } from 'react-router-dom'
 import {
   ResponsiveContainer,
@@ -55,11 +54,17 @@ import DateFnsUtils from '@date-io/date-fns'
 import frLocale from "date-fns/locale/fr"
 
 import gql from 'graphql-tag'
+import { graphql } from 'react-apollo'
+
 import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
 import { format } from 'date-fns'
 import ggChartColors from './ChartColors'
 import deepmerge from 'deepmerge'
 import plural from 'pluralize-fr'
+
+import loggerGenerator from './utils/logger'
+
+const logger = loggerGenerator('none')
 
 import { createMuiTheme } from '@material-ui/core'
 const darkTheme = createMuiTheme({
@@ -174,7 +179,7 @@ const styles = theme => ({
   }
 })
 
-const statsQuery = () => gql`
+const STATS_QUERY = gql`
   query Statistics($granularity: String!, $duration: String!, $series: [DimensionType!]) {
     statistics(granularity: $granularity, duration: $duration, series: $series)
   }
@@ -382,7 +387,7 @@ class Graph extends Component {
       durationAmount: autoConfigs[defaultConfig].durationAmount,
       dates: autoConfigs[defaultConfig].dates()
     }
-    console.log('V: init')
+    logger.log('V: init')
 
   }
   
@@ -486,35 +491,36 @@ class Graph extends Component {
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {
-    console.log('V: did update')
+    logger.log('V: did update')
+    this.setState({initKeys: false})
     if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-      console.log('V: pushing new url')
-      // this.props.history.push(`${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
+      logger.log('V: pushing new url', `${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
+      this.props.history.push(`${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
     }
   }
 
-  // shouldComponentUpdate(nextProps, nextState) {
-  //   console.log('shouldUpdate?', JSON.stringify(nextState) !== JSON.stringify(this.state) || nextProps.dimensions !== this.props.dimensions)
-  //   return JSON.stringify(nextState) !== JSON.stringify(this.state)
-  //     || nextProps.dimensions !== this.props.dimensions;
-  // }
+  shouldComponentUpdate(nextProps, nextState) {
+    logger.log(
+      'shouldUpdate?', 
+      JSON.stringify(nextState) !== JSON.stringify(this.state) || nextProps.dimensions !== this.props.dimensions)
+    
+    return JSON.stringify(nextState) !== JSON.stringify(this.state)
+      || nextProps.dimensions !== this.props.dimensions;
+  }
 
   static getDerivedStateFromProps(props, state) {
-    console.log('V: gdsfp - ', state.keys.length === 0, props.dimensions !== state.dimensions)
-    return props.dimensions !== state.dimensions
-      ? {
+    logger.log('V: gdsfp - ', state.keys.length === 0)
+    return {
         ...state,
         keys: state.keys.length === 0 ? Object.keys(props.dimensions).slice(0, 1) : state.keys,
-        dimensions: props.dimensions
       }
-      : null
   }
 
   componentDidMount () {
-    console.log('V: did mount')
+    logger.log('V: did mount', this.props.match)
     let urlConfiguration = {}
-    if (this.props.match.params.configuration) {
-      console.log('V: did mount with config')
+    if (this.props.match && this.props.match.params.configuration) {
+      logger.log('V: did mount with config')
 
       urlConfiguration = JSON.parse(decodeURIComponent(this.props.match.params.configuration))
       if (Array.isArray(urlConfiguration.dates)) {
@@ -588,16 +594,6 @@ class Graph extends Component {
     // Generate colors
     const colors = this.generateColors(series.map((v, i) => keys.map(key => `${i}.${key}`)).flat())
 
-    // Get date format according to granularity
-    const dateFormatter = this.dateFormatter(this.state.granularity)
-
-    // Select chart type
-    let [ Chart, SerieComponent ] = this.state.graphType === 'bar' 
-      ? [ BarChart, Bar ]
-      : !this.state.graphStack
-        ? [ LineChart, Line ]
-        : [ AreaChart, Area ]
-    
     // If not set, auto determine dimensions selector widget type
     if (!dimensionsSelector) {
       if (Object.keys(this.props.dimensions).length > 20) {
@@ -607,256 +603,47 @@ class Graph extends Component {
       }
     }
 
-    console.log('V: render')
+    logger.log('V: render')
     
     // TODO: colors and stacks
     return <>
-      <Query
-        // Request stats data 
-        query={statsQuery()}
-        variables={{
-          granularity: this.state.granularity,
-          duration: `${this.state.durationAmount} ${this.state.durationUnit}`,
-          series
-        }}
-      >
-      {({ loading, error, data }) => {
-        let series = []
-        let reduction = []
-        let dimensionsTypesAreHomogenes = true
-        console.log(loading ? 'loading' : 'computing')
-
-        if (!loading) {
-          const computedKeys = keys.filter(key => this.props.dimensions[key].series !== undefined)
-
-          // Format series and compute virtual dimentions in order to be injected in reCharts
-          series = data.statistics.map(point => ({
-            ...point,
-            date: format(new Date(point.date), dateFormatter, { weekStartsOn: 1, locale: frLocale }),
-            dimensions: point.dimensions.map(dimension => ({
-                ...deepmerge(dimension, computedKeys
-                  .reduce((extraFields, computedKey) => 
-                    deepmerge(extraFields,
-                      computedKey
-                        .split('.')
-                        .reverse()
-                        .reduce(
-                          (o, k) => ({ [k]: o }),
-                          this.props.dimensions[computedKey].f(dimension))
-                      ),
-                    {})),
-                date: format(new Date(dimension.date), dateFormatter, { weekStartsOn: 1, locale: frLocale })
-              })
-            )
-          }))
-
-          // compute reductions and variations between series 
-          reduction = series[0].dimensions.map((dimension, i) => {
-            const dimensionSerie = series.map(point => point.dimensions[i])
-            return keys.reduce((o, key) => {
-              o[key] = dimensionSerie
-                .map(entry => resolveObjectKeyChain(entry, key.split('.')))
-                .reduce(this.props.dimensions[key].reducer, null)
-              o[key] = o[key] !== null && typeof o[key] === 'object'
-                ? o[key].value
-                : o[key]
-              return o
-            }, {})
-          })
-
-          dimensionsTypesAreHomogenes = Object.keys(reduction[0]).reduce((type, key) =>
-            type === this.props.dimensions[key].type
-              ? type
-              : null, this.props.dimensions[Object.keys(reduction[0])[0]].type)
+      <FormControl className={classes.formControl}>
+        <FormLabel htmlFor="autoconfig">Pré-configuration</FormLabel>
+        <Select
+          value={this.state.autoConfig === null ? 'custom' : this.state.autoConfig}
+          onChange={this.handleChangeAutoconfig.bind(this)}
+          inputProps={{
+            name: 'autoconfig',
+            id: 'autoconfig',
+          }}
+        >
+          <MenuItem disabled={true} value="custom">
+            <em>Configuration personnalisée</em>
+          </MenuItem>
+          {Object.keys(autoConfigs).map(key => 
+            <MenuItem key={key} value={key}>{autoConfigs[key].title}</MenuItem>
+          )}
           
-        }
-        console.log('rendering')
-        return <div className={classes.graph}>
-            <FormControl className={classes.formControl}>
-              <FormLabel htmlFor="autoconfig">Pré-configuration</FormLabel>
-              <Select
-                value={this.state.autoConfig === null ? 'custom' : this.state.autoConfig}
-                onChange={this.handleChangeAutoconfig.bind(this)}
-                inputProps={{
-                  name: 'autoconfig',
-                  id: 'autoconfig',
-                }}
-              >
-                <MenuItem disabled={true} value="custom">
-                  <em>Configuration personnalisée</em>
-                </MenuItem>
-                {Object.keys(autoConfigs).map(key => 
-                  <MenuItem key={key} value={key}>{autoConfigs[key].title}</MenuItem>
-                )}
-                
-              </Select>
-            </FormControl>
-            <div className={classes.paddedContent}>
-            <Table className={classes.table}>
-              <TableHead>
-                <TableRow>
-                  <TableCell>
-                    Série
-                  </TableCell>
-                  {reduction.length 
-                    ? Object.keys(reduction[0]).map((key, i) =>
-                      <TableCell key={key}>
-                        {this.props.dimensions[key].title}
-                      </TableCell>)
-                    : null}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-              {reduction.reduce(
-                (lastSeries, serie) => [
-                  ...lastSeries, {
-                  dimensions: serie,
-                  total: Object.keys(serie).reduce((total, key) => total + serie[key], 0),
-                  totalVariation: ! lastSeries.length 
-                    ? null
-                    : Object.keys(serie).reduce((total, key) => total + serie[key], 0) / lastSeries[lastSeries.length -1].total,
-                  variation: Object.keys(serie).reduce(
-                    (o, key) => {
-                      if (! lastSeries.length) {
-                        o[key] = null
-                      } else {
-                        o[key] = lastSeries[lastSeries.length -1].dimensions[key] 
-                          ? serie[key] / lastSeries[lastSeries.length -1].dimensions[key]
-                          : null
-                      }
-                      return o
-                    },
-                    {}
-                  ) }
-                ],
-                []
-              ).map(({dimensions, variation, total, totalVariation}, i) =>
-                <TableRow key={i}>
-                  <TableCell>
-                    <Typography variant={smUpWidth ? "h6" : "subtitle2"} gutterBottom={this.state.graphStack && dimensionsTypesAreHomogenes}>
-                    {format(this.state.dates[i], this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {this.state.durationAmount}&nbsp;{(this.state.durationAmount > 1 ? plural(timeAggregations[this.state.durationUnit]) : timeAggregations[this.state.durationUnit]).toLowerCase()}
-                    </Typography>
-                    {/* Check if graph is stacked and dimensions have same type */}
-                    {this.state.graphStack && dimensionsTypesAreHomogenes
-                            ? <Box style={{
-                              whiteSpace: 'nowrap',
-                              color: totalVariation !== null
-                                ? totalVariation - 1 > 0
-                                  ? 'green'
-                                  : totalVariation - 1 < 0
-                                    ? 'red'
-                                    : 'inherit'
-                                : 'inherit'
-                              }}>
-                              {formatSerieValue(this.props.dimensions[Object.keys(dimensions)[0]], total)}
-                              {totalVariation !== null 
-                                ? ` (${formatVariationValue(totalVariation - 1)})`
-                                : null}
-                            </Box>
-                            : null }
-                  </TableCell>
-                  {Object.keys(dimensions).map(key => 
-                    <TableCell 
-                      key={`${i}-${key}`} 
-                      style={{
-                        whiteSpace: 'nowrap',
-                        color: variation[key] !== null
-                          ? variation[key] - 1 > 0
-                            ? 'green'
-                            : variation[key] - 1 < 0
-                              ? 'red'
-                              : 'inherit'
-                          : 'inherit'
-                        }}
-                      >
-                      <span style={{
-                          display:'inline-block', 
-                          width:'1em',
-                          height: '1em',
-                          marginRight: '0.3em',
-                          marginBottom: '-0.15em',
-                          backgroundColor: colors[`${i}.${key}`]
-                        }}></span>
-                      {formatSerieValue(this.props.dimensions[key], dimensions[key])}
-                      {variation[key] !== null || (this.state.graphStack && dimensionsTypesAreHomogenes)
-                        ? ` (${this.state.graphStack && dimensionsTypesAreHomogenes
-                          ? formatShareValue(dimensions[key] / total)
-                          : ''}${variation[key] !== null
-                          ? `${this.state.graphStack && dimensionsTypesAreHomogenes ? ' ╱ ': ''}${formatVariationValue(variation[key] - 1)}`
-                          : ''})`
-                        : null}
-                    </TableCell>
-                  )}
-                </TableRow>
-              )}
-              </TableBody>
-            </Table>
-            </div>
-            <div className={classes.paddedContent} >
-              <div className={classes.ratioContainer} >
-                <div className={classes.fullContainer}>
-                  <ResponsiveContainer>
-                    <Chart
-                        data={series}
-                        margin={{
-                          top: 0,
-                          right: 0,
-                          left: 20,
-                          bottom: smUpWidth
-                            ? ['hour', 'day', 'week'].includes(this.state.granularity)
-                              ? 90
-                              : 50
-                            : ['hour', 'day', 'week'].includes(this.state.granularity)
-                            ? 65
-                            : 45 }}
-                      >
-                      <YAxis />
-                      <XAxis
-                        dataKey={`date`}
-                        key={`date`}
-                        angle={-30}
-                        textAnchor="end" 
-                        />
-                      <Tooltip
-                        clasName={classes.tooltip}
-                        wrapperStyle={{ fontSize: 10 }}
-                        content={CustomTooltip(this.props.dimensions, this.state.graphStack)}
-                        />
-                      <CartesianGrid stroke="#f5f5f5" />
+        </Select>
+      </FormControl>
 
-                      {series.length 
-                          ? series[0].dimensions.map((v, i) =>
-                          keys.map(key =>
-                            <SerieComponent
-                              key={`dimensions[${i}].`+key}
-                              dataKey={`dimensions[${i}].`+key}
-                              stackId={this.state.graphStack?i:`dimensions[${i}].`+key}
-                              style={{position: 'relative'}}
-                              type={graphOptions.serieType}
-                              dot={false}
-                              {...(SerieComponent===Line || SerieComponent===Area
-                                ? { 
-                                  stroke: colors[`${i}.${key}`],
-                                  fill: colors[`${i}.${key}`],
-                                  strokeWidth: 3
-                                }
-                                : { 
-                                  fill: colors[`${i}.${key}`] 
-                                })
-                              }
-                              >
-                            </SerieComponent>
-                          )
-                        )
-                      : null}
-                    </Chart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-      }}
-      </Query>
+      <GraphQLDataViz 
+        classes={classes}
+        graphOptions={graphOptions}
+        colors={colors}
+        granularity={this.state.granularity}
+        durationAmount={this.state.durationAmount}
+        durationUnit={this.state.durationUnit}
+        series={series}
+        dimensions={this.props.dimensions}
+        timeAggregations={timeAggregations}
+        graphStack={this.state.graphStack}
+        dates={dates}
+        graphType={this.state.graphType}
+        dateFormatterGenerator={this.dateFormatter}
+        smUpWidth={smUpWidth}
+        keys={keys}
+        />
 
       <Divider variant="middle" />
 
@@ -865,7 +652,9 @@ class Graph extends Component {
         {dimensionsSelector === 'table'
           ? <TableSelect
               multiple
-              initialValue={Object.keys(this.props.dimensions).slice(0, 1)}
+              value={keys.length === 0
+                ? Object.keys(this.props.dimensions).slice(0, 1)
+                : keys }
               onChange={this.handleChangeKeys.bind(this)}
               dimensionsGroupsComponent={this.props.dimensionsGroupsComponent || 'auto'}
               dimensions={this.props.dimensions}
@@ -992,15 +781,281 @@ class Graph extends Component {
     </>
   }
 }
+
+const DataViz = ({
+  dimensions,
+  graphOptions,
+  colors,
+  timeAggregations,
+  durationAmount,
+  durationUnit,
+  granularity,
+  graphStack,
+  classes,
+  dateFormatterGenerator,
+  graphType,
+  smUpWidth,
+  keys,
+  dates,
+  data
+}) => {
+  const [series, setSeries] = useState([]);
+  const [reduction, setReduction] = useState([]);
+  const [dimensionsTypesAreHomogenes, setDimensionsTypesAreHomogenes] = useState(true);
+  let { loading, error } = data
+  const dateFormatter = dateFormatterGenerator(granularity)
+  logger.log('GV:' + (loading ? 'loading' : 'computing'))
+  // Select chart type
+  let [ ChartComponent, SerieComponent ] = graphType === 'bar' 
+    ? [ BarChart, Bar ]
+    : !graphStack
+      ? [ LineChart, Line ]
+      : [ AreaChart, Area ]
+  
+  useEffect(() => {
+    if (loading) {
+      setSeries([])
+      setReduction([])
+      setDimensionsTypesAreHomogenes(true)
+    } else {
+      const computedKeys = keys.filter(key => dimensions[key].series !== undefined)
+  
+      // Format series and compute virtual dimentions in order to be injected in reCharts
+      const _series = data.statistics.map(point => ({
+        ...point,
+        date: format(new Date(point.date), dateFormatter, { weekStartsOn: 1, locale: frLocale }),
+        dimensions: point.dimensions.map(dimension => ({
+            ...deepmerge(dimension, computedKeys
+              .reduce((extraFields, computedKey) => 
+                deepmerge(extraFields,
+                  computedKey
+                    .split('.')
+                    .reverse()
+                    .reduce(
+                      (o, k) => ({ [k]: o }),
+                      dimensions[computedKey].f(dimension))
+                  ),
+                {})),
+            date: format(new Date(dimension.date), dateFormatter, { weekStartsOn: 1, locale: frLocale })
+          })
+        )
+      }))
+      setSeries(_series)
+
+      // compute reductions and variations between series
+      const _reduction = _series[0].dimensions.map((dimension, i) => {
+        const dimensionSerie = _series.map(point => point.dimensions[i])
+        return keys.reduce((o, key) => {
+          o[key] = dimensionSerie
+            .map(entry => resolveObjectKeyChain(entry, key.split('.')))
+            .reduce(dimensions[key].reducer, null)
+          o[key] = o[key] !== null && typeof o[key] === 'object'
+            ? o[key].value
+            : o[key]
+          return o
+        }, {})
+      }) 
+      setReduction(_reduction)
+
+      setDimensionsTypesAreHomogenes(Object.keys(_reduction[0]).reduce((type, key) =>
+        type === dimensions[key].type
+          ? type
+          : null, dimensions[Object.keys(_reduction[0])[0]].type))
+      
+    }
+  }, [data, keys, dateFormatterGenerator, granularity, dimensions])
+  
+
+    
+  logger.log('GV: rendering')
+  return <div className={classes.graph}>
+    <div className={classes.paddedContent}>
+      <Table className={classes.table}>
+        <TableHead>
+          <TableRow>
+            <TableCell>
+              Série
+            </TableCell>
+            {reduction.length 
+              ? Object.keys(reduction[0]).map((key, i) =>
+                <TableCell key={key}>
+                  {dimensions[key].title}
+                </TableCell>)
+              : null}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+        {reduction.reduce(
+          (lastSeries, serie) => [
+            ...lastSeries, {
+            dimensions: serie,
+            total: Object.keys(serie).reduce((total, key) => total + serie[key], 0),
+            totalVariation: ! lastSeries.length 
+              ? null
+              : Object.keys(serie).reduce((total, key) => total + serie[key], 0) / lastSeries[lastSeries.length -1].total,
+            variation: Object.keys(serie).reduce(
+              (o, key) => {
+                if (! lastSeries.length) {
+                  o[key] = null
+                } else {
+                  o[key] = lastSeries[lastSeries.length -1].dimensions[key] 
+                    ? serie[key] / lastSeries[lastSeries.length -1].dimensions[key]
+                    : null
+                }
+                return o
+              },
+              {}
+            ) }
+          ],
+          []
+        ).map(({dimensions, variation, total, totalVariation}, i) =>
+          <TableRow key={i}>
+            <TableCell>
+              <Typography variant={smUpWidth ? "h6" : "subtitle2"} gutterBottom={graphStack && dimensionsTypesAreHomogenes !== null}>
+              {format(dates[i], dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {durationAmount}&nbsp;{(durationAmount > 1 ? plural(timeAggregations[durationUnit]) : timeAggregations[durationUnit]).toLowerCase()}
+              </Typography>
+              {/* Check if graph is stacked and dimensions have same type */}
+              {graphStack && dimensionsTypesAreHomogenes
+                      ? <Box style={{
+                        whiteSpace: 'nowrap',
+                        color: totalVariation !== null
+                          ? totalVariation - 1 > 0
+                            ? 'green'
+                            : totalVariation - 1 < 0
+                              ? 'red'
+                              : 'inherit'
+                          : 'inherit'
+                        }}>
+                        {formatSerieValue(dimensions[Object.keys(dimensions)[0]], total)}
+                        {totalVariation !== null 
+                          ? ` (${formatVariationValue(totalVariation - 1)})`
+                          : null}
+                      </Box>
+                      : null }
+            </TableCell>
+            {Object.keys(dimensions).map(key => 
+              <TableCell 
+                key={`${i}-${key}`} 
+                style={{
+                  whiteSpace: 'nowrap',
+                  color: variation[key] !== null
+                    ? variation[key] - 1 > 0
+                      ? 'green'
+                      : variation[key] - 1 < 0
+                        ? 'red'
+                        : 'inherit'
+                    : 'inherit'
+                  }}
+                >
+                <span style={{
+                    display:'inline-block', 
+                    width:'1em',
+                    height: '1em',
+                    marginRight: '0.3em',
+                    marginBottom: '-0.15em',
+                    backgroundColor: colors[`${i}.${key}`]
+                  }}></span>
+                {formatSerieValue(dimensions[key], dimensions[key])}
+                {variation[key] !== null || (graphStack && dimensionsTypesAreHomogenes)
+                  ? ` (${graphStack && dimensionsTypesAreHomogenes
+                    ? formatShareValue(dimensions[key] / total)
+                    : ''}${variation[key] !== null
+                    ? `${graphStack && dimensionsTypesAreHomogenes ? ' ╱ ': ''}${formatVariationValue(variation[key] - 1)}`
+                    : ''})`
+                  : null}
+              </TableCell>
+            )}
+          </TableRow>
+        )}
+        </TableBody>
+      </Table>
+      </div>
+      <div className={classes.paddedContent} >
+        <div className={classes.ratioContainer} >
+          <div className={classes.fullContainer}>
+            <ResponsiveContainer>
+              <ChartComponent
+                  data={series}
+                  margin={{
+                    top: 0,
+                    right: 0,
+                    left: 20,
+                    bottom: smUpWidth
+                      ? ['hour', 'day', 'week'].includes(granularity)
+                        ? 90
+                        : 50
+                      : ['hour', 'day', 'week'].includes(granularity)
+                      ? 65
+                      : 45 }}
+                >
+                <YAxis />
+                <XAxis
+                  dataKey={`date`}
+                  key={`date`}
+                  angle={-30}
+                  textAnchor="end" 
+                  />
+                <Tooltip
+                  clasName={classes.tooltip}
+                  wrapperStyle={{ fontSize: 10 }}
+                  content={CustomTooltip(dimensions, graphStack)}
+                  />
+                <CartesianGrid stroke="#f5f5f5" />
+
+                {series.length 
+                    ? series[0].dimensions.map((v, i) =>
+                    keys.map(key =>
+                      <SerieComponent
+                        key={ `dimensions[${i}].` + key }
+                        dataKey={ `dimensions[${i}].` + key }
+                        stackId={ graphStack ? i : `dimensions[${i}].` + key }
+                        style={{ position: 'relative' }}
+                        type={ graphOptions.serieType }
+                        dot={ false }
+                        {...(SerieComponent===Line || SerieComponent===Area
+                          ? { 
+                            stroke: colors[`${i}.${key}`],
+                            fill: colors[`${i}.${key}`],
+                            strokeWidth: 3
+                          }
+                          : { 
+                            fill: colors[`${i}.${key}`] 
+                          })
+                        }
+                        >
+                      </SerieComponent>
+                    )
+                  )
+                : null}
+              </ChartComponent>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+const GraphQLDataViz = graphql(STATS_QUERY, {
+    options: ({ granularity, durationAmount, durationUnit, series }) => ({
+      variables: {
+        granularity: granularity,
+        duration: `${durationAmount} ${durationUnit}`,
+        series: series
+      }
+    })
+  })(DataViz)
+
+const GraphWithStyle = withStyles(styles, { withTheme: true })(props => 
+  <Graph 
+    smUpWidth={useMediaQuery(props.theme.breakpoints.up('sm'))} 
+    {...props}
+  />)
  
-export default withRouter(routerProps =>
-    <Route 
-      path={`${routerProps.match.path}/:configuration?`} 
-      component={withStyles(styles, { withTheme: true })(styleProps => 
-        <Graph 
-          smUpWidth={useMediaQuery(styleProps.theme.breakpoints.up('sm'))} 
-          prefixPath={routerProps.match.path}
-          {...routerProps}
-          {...styleProps}
-          />)
-      }/>)
+const StyledGraphWithRoute = props => <Route 
+    path={`${props.match.path}/:configuration?`}
+    render={routeProps => <GraphWithStyle prefixPath={props.match.path} {...props} {...routeProps}/>}
+  />
+    
+const StyledGraphWithRouteAndRouter = withRouter(StyledGraphWithRoute)
+
+export default StyledGraphWithRouteAndRouter
