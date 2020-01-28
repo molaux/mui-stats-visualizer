@@ -16,6 +16,10 @@ import ListItemText from '@material-ui/core/ListItemText'
 import Select from '@material-ui/core/Select'
 import FormControlLabel from '@material-ui/core/FormControlLabel'
 
+import loggerGenerator from './utils/logger'
+
+const logger = loggerGenerator('none')
+
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
 const MenuProps = {
@@ -84,7 +88,6 @@ const RowGroup = React.memo(({
 class TableSelect extends PureComponent {
   state = {
     dimensions: {},
-    value: [],
     currentPage: 0,
     perPage: 10,
     filter: '',
@@ -97,12 +100,12 @@ class TableSelect extends PureComponent {
   handleChange(key, event, originalKeysSet) {
     const value =
       Array.isArray(key) ? 
-        [ ...this.state.value, ...key.filter(k => this.state.value.indexOf(k) === -1) ].filter(k => originalKeysSet.indexOf(k) === -1 || key.indexOf(k) !== -1)
+        [ ...this.props.value, ...key.filter(k => this.props.value.indexOf(k) === -1) ].filter(k => originalKeysSet.indexOf(k) === -1 || key.indexOf(k) !== -1)
         // add array if keys (multi select) to state
         : event.target.checked  
-          ? [ ...this.state.value, key ] // add key to state
-          : this.state.value.filter(v => v!== key)
-    this.setState({ value }) // remove key from state
+          ? [ ...this.props.value, key ] // add key to state
+          : this.props.value.filter(v => v!== key)
+    // this.setState({ value }) // remove key from state
     this.props.onChange(value)
   }
 
@@ -164,7 +167,6 @@ class TableSelect extends PureComponent {
         groups,
         filteredGroups: Object.keys(groups),
         subDimensions: Object.keys(Object.values(groups)[0].dimensions),
-        value: props.initialValue
       }
     }
 
@@ -201,16 +203,16 @@ class TableSelect extends PureComponent {
     if (Array.isArray(subDim)) { // Collapsed mode - select
       keys = subDim.reduce((all, subDim) => [ ...all, ...this.getSubDimKeys(subDim) ], [])
       const originalSubdimensionsSetKeys = originalSubdimensionsSet.reduce((all, subDim) => [ ...all, ...this.getSubDimKeys(subDim) ], [])
-      value = this.mergeValues(this.state.value, keys).filter(v => originalSubdimensionsSetKeys.indexOf(v) === -1 || keys.indexOf(v) !== -1)
+      value = this.mergeValues(this.props.value, keys).filter(v => originalSubdimensionsSetKeys.indexOf(v) === -1 || keys.indexOf(v) !== -1)
 
     } else { // Expanded mode - checkboxes
       keys = this.getSubDimKeys(subDim)
       value = event.target.checked 
-        ? this.mergeValues(this.state.value, keys)
-        : this.state.value.filter(v => keys.indexOf(v) === -1)
+        ? this.mergeValues(this.props.value, keys)
+        : this.props.value.filter(v => keys.indexOf(v) === -1)
     }
     
-    this.setState({ value })
+    // this.setState({ value })
     this.props.onChange(value)
   }
 
@@ -219,7 +221,7 @@ class TableSelect extends PureComponent {
       const filterRegex = RegExp(state.filter, 'gi')
       return { 
         filteredGroups: Object.keys(state.groups).filter(groupKey => 
-          (!state.inSelectionFilter || Object.values(state.groups[groupKey].dimensions).reduce((result, dimension) => result || state.value.indexOf(dimension.key) !== -1, false)) &&
+          (!state.inSelectionFilter || Object.values(state.groups[groupKey].dimensions).reduce((result, dimension) => result || this.props.value.indexOf(dimension.key) !== -1, false)) &&
           filterRegex.test(state.groups[groupKey].label) &&
           (state.depthFilter === "" || state.groups[groupKey].depth === state.depthFilter))
       }
@@ -228,17 +230,18 @@ class TableSelect extends PureComponent {
 
   // Display selection
   render () {
+    logger.log('TS: rendering')
     const { classes } = this.props
     const {
       groups,
       subDimensions,
-      value,
       filteredGroups,
       perPage,
       currentPage,
       depthFilter,
       inSelectionFilter } = this.state
-    
+    const { value } = this.props
+
     const slicedGroups = filteredGroups
       .slice(currentPage * perPage, (currentPage + 1) * perPage)
       .reduce((gps, key) => ({ ...gps, [key]: groups[key] }), {}) 
@@ -251,7 +254,7 @@ class TableSelect extends PureComponent {
         : 'collapsed'
 
     verticalSelectionLimit = verticalSelectionLimit || 20
-    return <>
+    const jsx = <>
       <Table className={classes.table}  size="small">
         <TableHead>
           <TableRow>
@@ -363,6 +366,9 @@ class TableSelect extends PureComponent {
         </TableBody>
       </Table>
     </>
+
+    logger.log('TS: end render')
+    return jsx
   }
 }
 
