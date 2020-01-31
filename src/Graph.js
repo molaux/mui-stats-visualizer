@@ -64,7 +64,7 @@ import plural from 'pluralize-fr'
 
 import loggerGenerator from './utils/logger'
 
-const logger = loggerGenerator('none')
+const logger = loggerGenerator('error')
 
 import { createMuiTheme } from '@material-ui/core'
 const darkTheme = createMuiTheme({
@@ -464,16 +464,15 @@ class Graph extends Component {
         autoConfig: null
       }
     })
-
-    
   }
 
   handleAddDate() {
     this.setState(({dates, durationAmount, durationUnit}) => {
-      dates.unshift(new Date(strtotime(`-${durationAmount} ${durationUnit}`, dates[0].getTime() / 1000) * 1000))
+      let datesCopy = Array.from(dates)
+      datesCopy.unshift(new Date(strtotime(`-${durationAmount} ${durationUnit}`, dates[0].getTime() / 1000) * 1000))
       return {
         autoConfig: null,
-        dates
+        dates: datesCopy
       }
     })
   }
@@ -501,7 +500,9 @@ class Graph extends Component {
 
   shouldComponentUpdate(nextProps, nextState) {
     logger.log(
-      'shouldUpdate?', 
+      'V: shouldUpdate?',
+      JSON.stringify(nextState),
+      JSON.stringify(this.state),
       JSON.stringify(nextState) !== JSON.stringify(this.state) || nextProps.dimensions !== this.props.dimensions)
     
     return JSON.stringify(nextState) !== JSON.stringify(this.state)
@@ -578,7 +579,6 @@ class Graph extends Component {
     }
 
     const { keys, dates } = this.state
-
     // Retrieve real dimensions involve, even in virtual dimensions
     const expandedKeys = [... new Set(keys.map(key => this.props.dimensions[key].series !== undefined 
       ?  this.props.dimensions[key].series
@@ -796,12 +796,15 @@ const DataViz = ({
   graphType,
   smUpWidth,
   keys,
-  dates,
+  dates: propDates,
   data
 }) => {
-  const [series, setSeries] = useState([]);
-  const [reduction, setReduction] = useState([]);
-  const [dimensionsTypesAreHomogenes, setDimensionsTypesAreHomogenes] = useState(true);
+  const [{ series, reduction, dimensionsTypesAreHomogenes, dates }, setState] = useState({
+    series: [],
+    reduction: [],
+    dimensionsTypesAreHomogenes: true,
+    dates: propDates
+  });
   let { loading, error } = data
   const dateFormatter = dateFormatterGenerator(granularity)
   logger.log('GV:' + (loading ? 'loading' : 'computing'))
@@ -814,60 +817,67 @@ const DataViz = ({
   
   useEffect(() => {
     if (loading) {
-      setSeries([])
-      setReduction([])
-      setDimensionsTypesAreHomogenes(true)
+      setState({
+        series: [], 
+        reduction: [], 
+        dimensionsTypesAreHomogenes: true,
+        dates: propDates
+      });
     } else {
       const computedKeys = keys.filter(key => dimensions[key].series !== undefined)
   
       // Format series and compute virtual dimentions in order to be injected in reCharts
-      const _series = data.statistics.map(point => ({
-        ...point,
-        date: format(new Date(point.date), dateFormatter, { weekStartsOn: 1, locale: frLocale }),
-        dimensions: point.dimensions.map(dimension => ({
-            ...deepmerge(dimension, computedKeys
-              .reduce((extraFields, computedKey) => 
-                deepmerge(extraFields,
-                  computedKey
-                    .split('.')
-                    .reverse()
-                    .reduce(
-                      (o, k) => ({ [k]: o }),
-                      dimensions[computedKey].f(dimension))
-                  ),
-                {})),
-            date: format(new Date(dimension.date), dateFormatter, { weekStartsOn: 1, locale: frLocale })
-          })
-        )
-      }))
-      setSeries(_series)
+      try {
+        const _series = data.statistics.map(point => ({
+          ...point,
+          date: format(new Date(point.date), dateFormatter, { weekStartsOn: 1, locale: frLocale }),
+          dimensions: point.dimensions.map(dimension => ({
+              ...deepmerge(dimension, computedKeys
+                .reduce((extraFields, computedKey) => 
+                  deepmerge(extraFields,
+                    computedKey
+                      .split('.')
+                      .reverse()
+                      .reduce(
+                        (o, k) => ({ [k]: o }),
+                        dimensions[computedKey].f(dimension))
+                    ),
+                  {})),
+              date: format(new Date(dimension.date), dateFormatter, { weekStartsOn: 1, locale: frLocale })
+            })
+          )
+        }))
 
-      // compute reductions and variations between series
-      const _reduction = _series[0].dimensions.map((dimension, i) => {
-        const dimensionSerie = _series.map(point => point.dimensions[i])
-        return keys.reduce((o, key) => {
-          o[key] = dimensionSerie
-            .map(entry => resolveObjectKeyChain(entry, key.split('.')))
-            .reduce(dimensions[key].reducer, null)
-          o[key] = o[key] !== null && typeof o[key] === 'object'
-            ? o[key].value
-            : o[key]
-          return o
-        }, {})
-      }) 
-      setReduction(_reduction)
-
-      setDimensionsTypesAreHomogenes(Object.keys(_reduction[0]).reduce((type, key) =>
-        type === dimensions[key].type
-          ? type
-          : null, dimensions[Object.keys(_reduction[0])[0]].type))
-      
+        // compute reductions and variations between series
+        const _reduction = _series[0].dimensions.map((dimension, i) => {
+          const dimensionSerie = _series.map(point => point.dimensions[i])
+          return keys.reduce((o, key) => {
+            o[key] = dimensionSerie
+              .map(entry => resolveObjectKeyChain(entry, key.split('.')))
+              .reduce(dimensions[key].reducer, null)
+            o[key] = o[key] !== null && typeof o[key] === 'object'
+              ? o[key].value
+              : o[key]
+            return o
+          }, {})
+        }) 
+        setState({
+          series: _series,
+          reduction: _reduction,
+          dimensionsTypesAreHomogenes: Object.keys(_reduction[0]).reduce((type, key) =>
+            type === dimensions[key].type
+              ? type
+              : null, dimensions[Object.keys(_reduction[0])[0]].type),
+          dates: propDates
+        })
+        
+      } catch (e) {
+        logger.error('Unable to compute series from api : ' + e)
+      }
     }
-  }, [data, keys, dateFormatterGenerator, granularity, dimensions])
-  
-
+  }, [data, dates, keys, dateFormatterGenerator, granularity, dimensions])
     
-  logger.log('GV: rendering')
+  logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>
       <Table className={classes.table}>
