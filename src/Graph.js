@@ -300,7 +300,7 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
       groups[date] = {
         points: [ {
           ...point,
-          variation: Object.keys(groups).length > 0
+          variation: Object.keys(groups).length > 0 && groups[Object.keys(groups)[Object.keys(groups).length - 1]].points[0] !== undefined
             ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 1]].points[0].value
             : null,
           share: null
@@ -313,7 +313,7 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
     } else {
       groups[date].points.push({
         ...point,
-        variation: Object.keys(groups).length > 1
+        variation: Object.keys(groups).length > 1 && groups[Object.keys(groups)[Object.keys(groups).length - 2]].points[groups[date].points.length] !== undefined
           ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 2]].points[groups[date].points.length].value
           : null,
         share: null
