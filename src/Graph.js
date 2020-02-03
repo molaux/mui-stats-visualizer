@@ -555,7 +555,6 @@ class Graph extends Component {
    */
   render() { 
     let { classes, graphOptions, theme, dimensionsSelector, autoConfigs, timeAggregations, smUpWidth } = this.props
-    
     if ( !graphOptions ) {
       graphOptions = { serieType: 'linear' }
     }
@@ -581,7 +580,7 @@ class Graph extends Component {
     const { keys, dates } = this.state
     // Retrieve real dimensions involve, even in virtual dimensions
     const expandedKeys = [... new Set(keys.map(key => this.props.dimensions[key].series !== undefined 
-      ?  this.props.dimensions[key].series
+      ? this.props.dimensions[key].series
       : key)
       .flat())]
 
@@ -1063,7 +1062,7 @@ const GraphWithStyle = withStyles(styles, { withTheme: true })(props =>
  
 const StyledGraphWithRoute = props => <Route 
     path={`${props.match.path}/:configuration?`}
-    render={routeProps => <GraphWithStyle prefixPath={props.match.path} {...props} {...routeProps}/>}
+    render={routeProps => <GraphWithStyle prefixPath={props.match.url} {...props} {...routeProps}/>}
   />
     
 const StyledGraphWithRouteAndRouter = withRouter(StyledGraphWithRoute)
