@@ -54,7 +54,7 @@ import DateFnsUtils from '@date-io/date-fns'
 import frLocale from "date-fns/locale/fr"
 
 import gql from 'graphql-tag'
-import { graphql } from 'react-apollo'
+import { graphql } from '@apollo/react-hoc'
 
 import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
 import { format } from 'date-fns'

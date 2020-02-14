@@ -28,7 +28,7 @@ module.exports = {
       "apollo-boost": "apollo-boost",
       "graphql": "graphql",
       "graphql-tag": "graphql-tag",
-      "react-apollo": "react-apollo",
+      "@apollo/react-hoc": "@apollo/react-hoc",
       "react-router-dom": "react-router-dom",
       "@date-io/date-fns": "@date-io/date-fns",
       'date-fns': 'date-fns',
