@@ -1,6 +1,6 @@
 {
   "name": "@molaux/mui-stats-visualizer",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "A macro component that configures, fetches and display stats data",
   "main": "build/index.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "deepmerge": "^4.2.2",
     "locutus": "^2.0.11",
     "pluralize-fr": "^1.0.1",
-    "recharts": "^1.8.5",
+    "recharts": "^2.0.0-beta.1",
     "recompose": "^0.30.0"
   },
   "peerDependencies": {
