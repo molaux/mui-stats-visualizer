@@ -283,7 +283,7 @@ const Share = ({value}) => <Box component="span" style={{
 
 const formatVariationValue = value => `${value > 0 ? '⬈' : '⬊'} ${Math.abs(value).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
 
-export default ({value}) => {
+export const Variation = ({value}) => {
   const theme = useTheme()
   return <Box component="span" style={{
       whiteSpace: 'nowrap',
