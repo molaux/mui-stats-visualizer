@@ -56,7 +56,7 @@ import frLocale from "date-fns/locale/fr"
 import gql from 'graphql-tag'
 import { graphql } from '@apollo/react-hoc'
 
-import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
+import { useTheme, withStyles, MuiThemeProvider } from '@material-ui/core/styles'
 import { format } from 'date-fns'
 import ggChartColors from './ChartColors'
 import deepmerge from 'deepmerge'
@@ -109,9 +109,11 @@ const styles = theme => ({
   },
   tooltip: {
     fontSize: 10,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    boxShadow: '5px 5px 1em rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    backdropFilter: 'blur(6px)',
     padding: theme.spacing(1),
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[3],
     '& p': {
       margin: theme.spacing(0.5)
     },
@@ -281,16 +283,19 @@ const Share = ({value}) => <Box component="span" style={{
 
 const formatVariationValue = value => `${value > 0 ? '⬈' : '⬊'} ${Math.abs(value).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
 
-const Variation = ({value}) => <Box component="span" style={{
-    whiteSpace: 'nowrap',
-    color: value !== null
-      ? value > 0
-        ? 'green'
-        : value< 0
-          ? 'red'
-          : 'inherit'
-      : 'inherit'
-  }}>{formatVariationValue(value)}</Box>
+export default ({value}) => {
+  const theme = useTheme()
+  return <Box component="span" style={{
+      whiteSpace: 'nowrap',
+      color: value !== null
+        ? value > 0
+          ? theme.palette.success.main
+          : value< 0
+            ? theme.palette.error.main
+            : 'inherit'
+        : 'inherit'
+    }}>{formatVariationValue(value)}</Box>
+}
 
 const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
   let groupsByLabel = (payload || []).reduce((groups, point) => {
