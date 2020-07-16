@@ -142,7 +142,7 @@ const styles = theme => ({
     margin: 2,
   },
   fatChip: {
-    height: '6em',
+    height: '7em',
     padding: theme.spacing(1, 0),
     backgroundColor: theme.palette.primary.main,
     '&:focus': {
