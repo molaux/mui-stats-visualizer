@@ -33,7 +33,7 @@ import DeleteIcon from '@material-ui/icons/Cancel'
 import useMediaQuery from '@material-ui/core/useMediaQuery';
 
 import {
-  MuiPickersUtilsProvider,
+  LocalizationProvider,
   DateTimePicker,
   DatePicker } from '@material-ui/pickers'
 import KeyboardArrowLeft from '@material-ui/icons/KeyboardArrowLeft'
@@ -142,7 +142,7 @@ const styles = theme => ({
     margin: 2,
   },
   fatChip: {
-    height: '5em',
+    height: '6em',
     padding: theme.spacing(1, 0),
     backgroundColor: theme.palette.primary.main,
     '&:focus': {
@@ -217,9 +217,9 @@ const DateTimeChip = withStyles(styles, { withTheme: true })(({ formatter, granu
       label={granularity === 'hour'
         ? <DateTimePicker
           label="Début de la série"
+          renderInput={props => <TextField {...props} />}
           value={date}
           disableFuture
-          autoOk
           labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
           ampm={false}
           onAccept={onChange}
@@ -233,7 +233,7 @@ const DateTimeChip = withStyles(styles, { withTheme: true })(({ formatter, granu
           label="Début de la série"
           value={date}
           disableFuture
-          autoOk
+          renderInput={props => <TextField {...props} />}
           labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
           onAccept={onChange}
           onChange={() => null}
@@ -690,7 +690,7 @@ class Graph extends Component {
       <Divider variant="middle" />
 
       <div className={classes.formControl}>
-        <MuiPickersUtilsProvider utils={DateFnsUtils} locale={frLocale}>
+      <LocalizationProvider dateAdapter={DateFnsUtils} locale={frLocale}>
           <FormLabel>Séries temporelles</FormLabel>
           <div className={classes.datesContainer}>
             <Chip
@@ -714,7 +714,7 @@ class Graph extends Component {
               onDelete={this.handleDeleteDate.bind(this, i)} />)}
            
           </div>
-        </MuiPickersUtilsProvider>
+        </LocalizationProvider>
       </div>
 
       <Divider variant="middle" />
