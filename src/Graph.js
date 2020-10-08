@@ -30,8 +30,9 @@ import Chip from '@material-ui/core/Chip'
 import Box from '@material-ui/core/Box'
 import DateIcon from '@material-ui/icons/Timeline'
 import DeleteIcon from '@material-ui/icons/Cancel'
-import useMediaQuery from '@material-ui/core/useMediaQuery';
-
+import useMediaQuery from '@material-ui/core/useMediaQuery'
+import TrendingDownIcon from '@material-ui/icons/TrendingDown'
+import TrendingUpIcon from '@material-ui/icons/TrendingUp'
 import {
   LocalizationProvider,
   DateTimePicker,
@@ -49,6 +50,8 @@ import TableBody from '@material-ui/core/TableBody'
 import TableCell from '@material-ui/core/TableCell'
 import TableRow from '@material-ui/core/TableRow'
 import TableHead from '@material-ui/core/TableHead'
+
+import PieIcon from './Pie'
 
 import DateFnsUtils from '@date-io/date-fns'
 import frLocale from "date-fns/locale/fr"
@@ -109,7 +112,7 @@ const styles = theme => ({
   },
   tooltip: {
     fontSize: 10,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     backdropFilter: 'blur(6px)',
     padding: theme.spacing(1),
     borderRadius: theme.shape.borderRadius,
@@ -263,26 +266,24 @@ const formatSerieValue = (dimension, value) => {
   }
 }
 
-const formatShareValue = (value) => {
-  if (value < 1/8) {
-    return `⚪ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
-  } else if (value < 3/8) {
-    return `◔ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
-  } else if (value < 5/8) {
-    return `◑ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
-  } else if (value < 7/8) {
-    return `◕ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
-  } else {
-    return `⚫ ${value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
-  }
-}
+const ShareValue = ({value}) => <>
+  <PieIcon angle={value * 2 * Math.PI} style={{width: '0.8em', height: '0.8em', margin: '0 0.2em -0.2em 0.2em'}} />
+  {value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}
+</>
 
 const Share = ({value}) => <Box component="span" style={{
     whiteSpace: 'nowrap'
-  }}>{formatShareValue(value)}</Box>
+  }}>
+    <ShareValue value={value} />
+  </Box>
 
-const formatVariationValue = value => `${value > 0 ? '⬈' : '⬊'} ${Math.abs(value).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}`
-
+const VariationValue = ({value}) => <>
+  {value > 0
+    ? <TrendingUpIcon style={{margin: '0 0.2em -0.3em 0.2em'}} size="small"/>
+    : value < 0 ? <TrendingDownIcon style={{margin: '0 0.2em -0.3em 0.2em'}} size="small"/>
+    : null }
+  {Math.abs(value).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}
+</>
 export const Variation = ({value}) => {
   const theme = useTheme()
   return <Box component="span" style={{
@@ -290,11 +291,13 @@ export const Variation = ({value}) => {
       color: value !== null
         ? value > 0
           ? theme.palette.success.main
-          : value< 0
+          : value < 0
             ? theme.palette.error.main
             : 'inherit'
         : 'inherit'
-    }}>{formatVariationValue(value)}</Box>
+    }}>
+      <VariationValue value={value}/>
+  </Box>
 }
 
 const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
@@ -942,7 +945,7 @@ const DataViz = ({
                         }}>
                         {formatSerieValue(dimensions[Object.keys(dimensions)[0]], total)}
                         {totalVariation !== null 
-                          ? ` (${formatVariationValue(totalVariation - 1)})`
+                          ? (<VariationValue value={totalVariation - 1}/>)
                           : null}
                       </Box>
                       : null }
@@ -971,11 +974,15 @@ const DataViz = ({
                   }}></span>
                 {formatSerieValue(dimensions[key], dimensions[key])}
                 {variation[key] !== null || (graphStack && dimensionsTypesAreHomogenes)
-                  ? ` (${graphStack && dimensionsTypesAreHomogenes
-                    ? formatShareValue(dimensions[key] / total)
-                    : ''}${variation[key] !== null
-                    ? `${graphStack && dimensionsTypesAreHomogenes ? ' ╱ ': ''}${formatVariationValue(variation[key] - 1)}`
-                    : ''})`
+                  ? <> ({graphStack && dimensionsTypesAreHomogenes
+                    ? <ShareValue value={dimensions[key] / total} />
+                    : ''}{variation[key] !== null
+                    ? <> 
+                      {graphStack && dimensionsTypesAreHomogenes ? ' /': ''}
+                      <VariationValue value={variation[key] - 1}/>
+                      </>
+                    : ''})
+                  </>
                   : null}
               </TableCell>
             )}
