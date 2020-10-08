@@ -111,10 +111,9 @@ const styles = theme => ({
     fontSize: 10
   },
   tooltip: {
-    fontSize: 10,
+    fontSize: 9,
     backgroundColor: 'rgba(255,255,255,0.95)',
     backdropFilter: 'blur(6px)',
-    padding: theme.spacing(1),
     borderRadius: theme.shape.borderRadius,
     boxShadow: theme.shadows[3],
     '& tr:last-child td': {
@@ -265,10 +264,12 @@ const formatSerieValue = (dimension, value) => {
   }
 }
 
-const ShareValue = ({value}) => <>
-  <PieIcon angle={value * 2 * Math.PI} style={{width: '0.8em', height: '0.8em', margin: '0 0.2em -0.2em 0.2em'}} />
-  {value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}
-</>
+const ShareValue = ({value}) => isNaN(value) 
+  ? null
+  : <>
+    <PieIcon angle={(value === 1 ? 0.999999 : value) * 2 * Math.PI} style={{width: '0.8em', height: '0.8em', margin: '0 0.2em -0.2em 0.2em'}} />
+    {value.toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}
+  </>
 
 const Share = ({value}) => <Box component="span" style={{
     whiteSpace: 'nowrap'
@@ -355,11 +356,13 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
                     ? formatSerieValue(dimensions[groupsByLabel[date].points[0].dataKey.split('.').slice(1).join('.')], groupsByLabel[date].total)
                     : null }</b>
                 </TableCell>
-                <TableCell></TableCell>
+                <TableCell>{groupsByLabel[date].points.reduce((hasShare, p) => hasShare && p.share !== null, true)
+                  ? <Share value={1}/>
+                  : null }</TableCell>
                 <TableCell>
-                  {summize && groupsByLabel[date].variation !== null 
+                  <b>{summize && groupsByLabel[date].variation !== null 
                     ? <Variation value={groupsByLabel[date].variation - 1} />
-                    : null}
+                    : null}</b>
                 </TableCell>
               </TableRow>,
               ...groupsByLabel[date].points.map(point => {
