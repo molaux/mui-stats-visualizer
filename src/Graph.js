@@ -112,7 +112,7 @@ const styles = theme => ({
   },
   tooltip: {
     fontSize: 10,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     backdropFilter: 'blur(6px)',
     padding: theme.spacing(1),
     borderRadius: theme.shape.borderRadius,
@@ -229,6 +229,7 @@ const DateTimeChip = withStyles(styles, { withTheme: true })(({ formatter, granu
           onChange={() => null}
           leftArrowIcon={<KeyboardArrowLeft />}
           rightArrowIcon={<KeyboardArrowRight />}
+          allowSameDateSelection={true}
           dateRangeIcon={<DateRange />}
           timeIcon={<AccessTime />}
           />
@@ -242,6 +243,7 @@ const DateTimeChip = withStyles(styles, { withTheme: true })(({ formatter, granu
           onChange={() => null}
           leftArrowIcon={<KeyboardArrowLeft />}
           rightArrowIcon={<KeyboardArrowRight />}
+          allowSameDateSelection={true}
           />}
       onDelete={onDelete}
       deleteIcon={<DeleteIcon />}
@@ -341,40 +343,62 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
 
   if (active) {
     return <div className={clasName} style={wrapperStyle}>
-        {Object.keys(groupsByLabel).map(date => 
-          (
-            <div key={date}>
-              <Typography variant="subtitle2" component="p">
-                {date}
-                {summize
-                  ? ` : ${formatSerieValue(dimensions[groupsByLabel[date].points[0].dataKey.split('.').slice(1).join('.')], groupsByLabel[date].total)}`
-                  : '' }
-                {summize && groupsByLabel[date].variation !== null 
-                  ? <><span> (</span><Variation value={groupsByLabel[date].variation - 1} /><span>)</span></>
-                  : null}
-              </Typography>
-              {groupsByLabel[date].points.map(point => {
+      <Table>
+        <TableBody>
+          {Object.keys(groupsByLabel).map((date, i) => 
+            [
+              <TableRow key={date} style={{backgroundColor: i%2 === 1 ? 'rgba(0, 0, 0, 0.05)' : 'transparent'}}>
+                <TableCell>
+                  <Typography variant="subtitle2" component="p">
+                    {date}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <b>{summize
+                    ? formatSerieValue(dimensions[groupsByLabel[date].points[0].dataKey.split('.').slice(1).join('.')], groupsByLabel[date].total)
+                    : null }</b>
+                </TableCell>
+                <TableCell></TableCell>
+                <TableCell>
+                  {summize && groupsByLabel[date].variation !== null 
+                    ? <Variation value={groupsByLabel[date].variation - 1} />
+                    : null}
+                </TableCell>
+              </TableRow>,
+              ...groupsByLabel[date].points.map(point => {
                 const serieKey = point.dataKey.split('.').slice(1).join('.')
-                return <p
-                    key={point.dataKey}
-                    style={{color: point.stroke ? point.stroke : point.fill}}>
-                    {dimensions[serieKey].title} : {formatSerieValue(dimensions[serieKey], point.value)}
-                    {point.variation !== null || point.share !== null
-                      ? <><span> (</span>{
-                        point.share !== null ? <Share value={point.share} /> : null
-                      }{
-                        point.variation !== null && point.share !== null ? ' ╱ ' : null 
-                      }{
-                        point.variation !== null ? <Variation value={point.variation - 1} /> : null 
-                      }<span>)</span></>
-                      : null
-                    }
-                  </p>
-                })
-              }
-            </div>
-          ))}
-      </div>
+                return <TableRow key={point.dataKey}  style={{backgroundColor: i%2 === 1 ? 'rgba(0, 0, 0, 0.05)' : 'transparent'}}>
+                  <TableCell style={{color: point.stroke ? point.stroke : point.fill}}>
+                    <span style={{
+                      display:'inline-block', 
+                      width:'1em',
+                      height: '1em',
+                      marginRight: '0.3em',
+                      marginBottom: '-0.15em',
+                      backgroundColor: point.stroke ? point.stroke : point.fill
+                    }}></span>
+                    {dimensions[serieKey].title}
+                  </TableCell>
+                  <TableCell>
+                    {formatSerieValue(dimensions[serieKey], point.value)}
+                  </TableCell>
+                  <TableCell>
+                    { point.share !== null ? 
+                      <Share value={point.share} />
+                      : null }
+                  </TableCell>
+                  <TableCell>
+                    { point.variation !== null
+                      ? <Variation value={point.variation - 1} />
+                      : null }
+                  </TableCell>
+                </TableRow>
+              })
+            ]
+          )}
+        </TableBody>
+      </Table>
+    </div>
   }
 
   return null
@@ -883,7 +907,7 @@ const DataViz = ({
       }
     }
   }, [data, dates, keys, dateFormatterGenerator, granularity, dimensions])
-    
+
   logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>
@@ -925,7 +949,7 @@ const DataViz = ({
             ) }
           ],
           []
-        ).map(({dimensions, variation, total, totalVariation}, i) =>
+        ).map(({dimensions: _dimensions, variation, total, totalVariation}, i) =>
           <TableRow key={i}>
             <TableCell>
               <Typography variant={smUpWidth ? "h6" : "subtitle2"} gutterBottom={graphStack && dimensionsTypesAreHomogenes !== null}>
@@ -943,14 +967,14 @@ const DataViz = ({
                               : 'inherit'
                           : 'inherit'
                         }}>
-                        {formatSerieValue(dimensions[Object.keys(dimensions)[0]], total)}
+                        {formatSerieValue(dimensions[Object.keys(_dimensions)[0]], total)}
                         {totalVariation !== null 
-                          ? (<VariationValue value={totalVariation - 1}/>)
+                          ? <Box component="span" style={{marginLeft:'1em'}}>(<VariationValue value={totalVariation - 1}/> )</Box>
                           : null}
                       </Box>
                       : null }
             </TableCell>
-            {Object.keys(dimensions).map(key => 
+            {Object.keys(_dimensions).map(key => 
               <TableCell 
                 key={`${i}-${key}`} 
                 style={{
@@ -972,17 +996,15 @@ const DataViz = ({
                     marginBottom: '-0.15em',
                     backgroundColor: colors[`${i}.${key}`]
                   }}></span>
-                {formatSerieValue(dimensions[key], dimensions[key])}
+                {formatSerieValue(dimensions[key], _dimensions[key])}
                 {variation[key] !== null || (graphStack && dimensionsTypesAreHomogenes)
-                  ? <> ({graphStack && dimensionsTypesAreHomogenes
-                    ? <ShareValue value={dimensions[key] / total} />
-                    : ''}{variation[key] !== null
-                    ? <> 
-                      {graphStack && dimensionsTypesAreHomogenes ? ' /': ''}
-                      <VariationValue value={variation[key] - 1}/>
-                      </>
-                    : ''})
-                  </>
+                  ? <Box component="span" style={{marginLeft:'1em'}}>
+                    ({graphStack && dimensionsTypesAreHomogenes
+                      ? <ShareValue value={_dimensions[key] / total} />
+                      : null}{variation[key] !== null
+                      ? <VariationValue value={variation[key] - 1}/>
+                      : null} )
+                  </Box>
                   : null}
               </TableCell>
             )}
