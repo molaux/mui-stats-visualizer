@@ -117,11 +117,8 @@ const styles = theme => ({
     padding: theme.spacing(1),
     borderRadius: theme.shape.borderRadius,
     boxShadow: theme.shadows[3],
-    '& p': {
-      margin: theme.spacing(0.5)
-    },
-    '& > div:not(:first-child)': {
-      marginTop: theme.spacing(1)
+    '& tr:last-child td': {
+      borderBottom: 0
     }
   },
   formControl: {
@@ -343,7 +340,7 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
 
   if (active) {
     return <div className={clasName} style={wrapperStyle}>
-      <Table>
+      <Table size="small">
         <TableBody>
           {Object.keys(groupsByLabel).map((date, i) => 
             [
