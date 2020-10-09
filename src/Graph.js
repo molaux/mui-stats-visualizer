@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect } from 'react'
+import React, { Component, useState, useEffect, useRef } from 'react'
 import { Route, withRouter } from 'react-router-dom'
 import {
   ResponsiveContainer,
@@ -33,6 +33,7 @@ import DeleteIcon from '@material-ui/icons/Cancel'
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 import TrendingDownIcon from '@material-ui/icons/TrendingDown'
 import TrendingUpIcon from '@material-ui/icons/TrendingUp'
+
 import {
   LocalizationProvider,
   DateTimePicker,
@@ -81,6 +82,8 @@ const darkTheme = createMuiTheme({
 
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
+const GRAPH_TINY_RATIO = 0.7
+const GRAPH_WIDE_RATIO = 0.3
 
 const MenuProps = {
   PaperProps: {
@@ -111,11 +114,15 @@ const styles = theme => ({
     fontSize: 10
   },
   tooltip: {
-    fontSize: 9,
     backgroundColor: 'rgba(255,255,255,0.95)',
     backdropFilter: 'blur(6px)',
+    padding: theme.spacing(0, 0.5, 0.5, 0.5),
     borderRadius: theme.shape.borderRadius,
     boxShadow: theme.shadows[3],
+    fontSize: '0.8em',
+    '& td': {
+      padding: theme.spacing(0.5, 1, 0.5, 1)
+    },
     '& tr:last-child td': {
       borderBottom: 0
     }
@@ -141,9 +148,12 @@ const styles = theme => ({
     margin: 2,
   },
   fatChip: {
-    height: '7em',
+    height: '5em',
     padding: theme.spacing(1, 0),
     backgroundColor: theme.palette.primary.main,
+    [theme.breakpoints.down('sm')]: {
+      height: '4.5em'
+    },
     '&:focus': {
       backgroundColor: theme.palette.primary.main
     }
@@ -164,11 +174,11 @@ const styles = theme => ({
     },
   },
   ratioContainer: {
-    paddingBottom: '30%', /* width/height Ratio */
+    paddingBottom: `${Math.round(GRAPH_WIDE_RATIO*100)}%`, /* width/height Ratio */
     position: 'relative',
     height: 0,
     [theme.breakpoints.down('md')]: {
-      paddingBottom: '70%', /* width/height Ratio */
+      paddingBottom: `${Math.round(GRAPH_TINY_RATIO*100)}%`, /* width/height Ratio */
     },
   },
   fullContainer: {
@@ -176,7 +186,7 @@ const styles = theme => ({
     top: '0',
     left: '0',
     width: '100%',
-    height: '100%'
+    height: '100%',
   }
 })
 
@@ -216,7 +226,7 @@ const DateTimeChip = withStyles(styles, { withTheme: true })(({ formatter, granu
       label={granularity === 'hour'
         ? <DateTimePicker
           label="Début de la série"
-          renderInput={props => <TextField {...props} />}
+          renderInput={props => <TextField {...props} size="small" helperText={null} />}
           value={date}
           disableFuture
           labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
@@ -233,7 +243,7 @@ const DateTimeChip = withStyles(styles, { withTheme: true })(({ formatter, granu
           label="Début de la série"
           value={date}
           disableFuture
-          renderInput={props => <TextField {...props} />}
+          renderInput={props => <TextField {...props} size="small" helperText={null} />}
           labelFunc={value => value ? format(value, formatter, { locale: frLocale }) : ''}
           onAccept={onChange}
           onChange={() => null}
@@ -301,34 +311,37 @@ export const Variation = ({value}) => {
 }
 
 const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasName, wrapperStyle, ...rest }) => {
-  let groupsByLabel = (payload || []).reduce((groups, point) => {
+  const groupsByLabel = (payload || []).reduce((groups, point) => {
     const dimensionKey = point.dataKey.split('.')[0]
     const date = resolveObjectKeyChain(point.payload, [ dimensionKey ]).date
+    const groupsKeys = Object.keys(groups)
+    const lastGroup = groupsKeys.length > 0 ? groups[groupsKeys[groupsKeys.length - 1]] : undefined
+    const beforeLastGroup = groupsKeys.length > 1 ? groups[groupsKeys[groupsKeys.length - 2]] : undefined
     if (groups[date] === undefined) {
       groups[date] = {
         points: [ {
           ...point,
-          variation: Object.keys(groups).length > 0 && groups[Object.keys(groups)[Object.keys(groups).length - 1]].points[0] !== undefined
-            ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 1]].points[0].value
+          variation: lastGroup !== undefined && lastGroup.points[0] !== undefined
+            ? point.value / lastGroup.points[0].value
             : null,
           share: null
         } ],
         total: point.value,
-        variation: Object.keys(groups).length > 0
-          ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 1]].total
+        variation: lastGroup !== undefined
+          ? point.value / lastGroup.total
           : null
       }
     } else {
       groups[date].points.push({
         ...point,
-        variation: Object.keys(groups).length > 1 && groups[Object.keys(groups)[Object.keys(groups).length - 2]].points[groups[date].points.length] !== undefined
-          ? point.value / groups[Object.keys(groups)[Object.keys(groups).length - 2]].points[groups[date].points.length].value
+        variation: beforeLastGroup !== undefined && beforeLastGroup.points[groups[date].points.length] !== undefined
+          ? point.value / beforeLastGroup.points[groups[date].points.length].value
           : null,
         share: null
       })
       groups[date].total += point.value
-      groups[date].variation =  Object.keys(groups).length > 1
-        ? groups[date].total / groups[Object.keys(groups)[Object.keys(groups).length - 2]].total
+      groups[date].variation =  beforeLastGroup !== undefined
+        ? groups[date].total / beforeLastGroup.total
         : null
       if (summize) {
         for (const point of groups[date].points) {
@@ -339,6 +352,7 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
     return groups
   }, {})
 
+  
   if (active) {
     return <div className={clasName} style={wrapperStyle}>
       <Table size="small">
@@ -368,7 +382,7 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
               ...groupsByLabel[date].points.map(point => {
                 const serieKey = point.dataKey.split('.').slice(1).join('.')
                 return <TableRow key={point.dataKey}  style={{backgroundColor: i%2 === 1 ? 'rgba(0, 0, 0, 0.05)' : 'transparent'}}>
-                  <TableCell style={{color: point.stroke ? point.stroke : point.fill}}>
+                  <TableCell style={{color: point.stroke ? point.stroke : point.fill, whiteSpace: 'wrap', minWidth: '100', paddingLeft: '2em', textIndent: '-1.3em'}}>
                     <span style={{
                       display:'inline-block', 
                       width:'1em',
@@ -538,7 +552,8 @@ class Graph extends Component {
       JSON.stringify(nextState) !== JSON.stringify(this.state) || nextProps.dimensions !== this.props.dimensions)
     
     return JSON.stringify(nextState) !== JSON.stringify(this.state)
-      || nextProps.dimensions !== this.props.dimensions;
+      || nextProps.dimensions !== this.props.dimensions
+      || nextProps.smUpWidth !== this.props.smUpWidth;
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -657,7 +672,7 @@ class Graph extends Component {
           
         </Select>
       </FormControl>
-
+      
       <GraphQLDataViz 
         classes={classes}
         graphOptions={graphOptions}
@@ -675,9 +690,7 @@ class Graph extends Component {
         smUpWidth={smUpWidth}
         keys={keys}
         />
-
       <Divider variant="middle" />
-
       <FormControl className={classes.formControl} style={{minWidth: '100%'}}>
         <FormLabel>Dimensions</FormLabel>
         {dimensionsSelector === 'table'
@@ -731,6 +744,7 @@ class Graph extends Component {
               className={classes.chip}
               color="primary"
             />
+            {!smUpWidth ? <br/> : null}
             {dates.map((date, i) => <DateTimeChip 
               key={i}
               date={date}
@@ -751,9 +765,6 @@ class Graph extends Component {
         <Select
           value={this.state.granularity}
           onChange={this.handleChangeGranularity.bind(this)}
-          inputProps={{
-            name: 'agregation',
-          }}
         >
           {Object.keys(timeAggregations).map(taKey => 
             <MenuItem key={taKey} value={taKey}>Par {timeAggregations[taKey].toLowerCase()}</MenuItem>
@@ -769,17 +780,13 @@ class Graph extends Component {
           onChange={this.handleChangeDurationAmount.bind(this)}
           type="number"
           InputLabelProps={{
-            shrink: true,
-            name: 'duration-amount'
+            shrink: true
           }}
           margin="normal"
         />
         <Select
           value={this.state.durationUnit}
           onChange={this.handleChangeDurationUnit.bind(this)}
-          inputProps={{
-            name: 'duration-unit',
-          }}
         >
           {Object.keys(timeAggregations).map(taKey => 
             <MenuItem key={taKey} value={taKey}>{this.state.durationAmount > 1 ? plural(timeAggregations[taKey]) : timeAggregations[taKey]}</MenuItem>
@@ -908,6 +915,8 @@ const DataViz = ({
     }
   }, [data, dates, keys, dateFormatterGenerator, granularity, dimensions])
 
+  const graphContainerRef = useRef(null)
+  
   logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>
@@ -1012,71 +1021,84 @@ const DataViz = ({
         )}
         </TableBody>
       </Table>
-      </div>
-      <div className={classes.paddedContent} >
-        <div className={classes.ratioContainer} >
-          <div className={classes.fullContainer}>
-            <ResponsiveContainer>
-              <ChartComponent
-                  data={series}
-                  margin={{
-                    top: 0,
-                    right: 0,
-                    left: 20,
-                    bottom: smUpWidth
-                      ? ['hour', 'day', 'week'].includes(granularity)
-                        ? 90
-                        : 50
-                      : ['hour', 'day', 'week'].includes(granularity)
-                      ? 65
-                      : 45 }}
-                >
-                <YAxis />
-                <XAxis
-                  dataKey={`date`}
-                  key={`date`}
-                  tick={({
-                        x, y, stroke, payload,
-                      }) => (
-                        <g transform={`translate(${x},${y})`}>
-                          <text x={0} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-35)">{payload.value}</text>
-                        </g>
-                      )
-                    }
-                  />
-                <Tooltip
-                  clasName={classes.tooltip}
-                  wrapperStyle={{ fontSize: 10 }}
-                  content={CustomTooltip(dimensions, graphStack)}
-                  />
-                <CartesianGrid stroke="#f5f5f5" />
+    </div>
+    {smUpWidth ? 't' : 'f'}
+    {typeof smUpWidth}
 
-                {series.length 
-                    ? series[0].dimensions.map((v, i) =>
-                    keys.map(key =>
-                      <SerieComponent
-                        key={ `dimensions[${i}].` + key }
-                        dataKey={ `dimensions[${i}].` + key }
-                        stackId={ graphStack ? i : `dimensions[${i}].` + key }
-                        style={{ position: 'relative' }}
-                        type={ graphOptions.serieType }
-                        dot={ false }
-                        {...(SerieComponent===Line || SerieComponent===Area
-                          ? { 
-                            stroke: colors[`${i}.${key}`],
-                            fill: colors[`${i}.${key}`],
-                            strokeWidth: 3
-                          }
-                          : { 
-                            fill: colors[`${i}.${key}`] 
-                          })
-                        }
-                        >
-                      </SerieComponent>
+    <div className={classes.paddedContent} ref={graphContainerRef}>
+      <div className={classes.ratioContainer} >
+        <div className={classes.fullContainer}>
+          <ResponsiveContainer id="987dazad__" >
+            <ChartComponent
+                // onMouseEnter={console.log.bind(null, 'enter')}
+                // onMouseMove={console.log.bind(null, 'move')}
+                // onMouseLeave={console.log.bind(null, 'leave')}
+                data={series}
+                margin={{
+                  top: 0,
+                  right: 0,
+                  left: 20,
+                  bottom: smUpWidth
+                    ? ['hour', 'day', 'week'].includes(granularity)
+                      ? 90
+                      : 50
+                    : ['hour', 'day', 'week'].includes(granularity)
+                    ? 65
+                    : 45 }}
+              >
+              <YAxis />
+              <XAxis
+                dataKey={`date`}
+                key={`date`}
+                tick={({
+                      x, y, stroke, payload,
+                    }) => (
+                      <g transform={`translate(${x},${y})`}>
+                        <text x={0} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-35)">{payload.value}</text>
+                      </g>
                     )
+                  }
+                />
+              <Tooltip
+                clasName={classes.tooltip}
+                {...(!smUpWidth
+                  ? {
+                    position: {x:0, y: graphContainerRef.current?.offsetHeight ?? 150}
+                  }
+                  : null) }
+                
+                allowEscapeViewBox={{ x: false, y: true }}
+                wrapperStyle={{ fontSize: 10, zIndex: 1200, ...(!smUpWidth ? { width: '100%' } : null) }}
+                content={CustomTooltip(dimensions, graphStack)}
+                />
+              <CartesianGrid stroke="#f5f5f5" />
+
+              {series.length 
+                  ? series[0].dimensions.map((v, i) =>
+                  keys.map(key =>
+                    <SerieComponent
+                      key={ `dimensions[${i}].` + key }
+                      dataKey={ `dimensions[${i}].` + key }
+                      stackId={ graphStack ? i : `dimensions[${i}].` + key }
+                      // style={{ position: 'relative' }}
+                      type={ graphOptions.serieType }
+                      dot={ false }
+                      {...(SerieComponent===Line || SerieComponent===Area
+                        ? { 
+                          stroke: colors[`${i}.${key}`],
+                          fill: colors[`${i}.${key}`],
+                          strokeWidth: 3
+                        }
+                        : { 
+                          fill: colors[`${i}.${key}`] 
+                        })
+                      }
+                      >
+                    </SerieComponent>
                   )
-                : null}
-              </ChartComponent>
+                )
+              : null}
+            </ChartComponent>
           </ResponsiveContainer>
         </div>
       </div>
@@ -1094,11 +1116,13 @@ const GraphQLDataViz = graphql(STATS_QUERY, {
     })
   })(DataViz)
 
-const GraphWithStyle = withStyles(styles, { withTheme: true })(props => 
-  <Graph 
-    smUpWidth={useMediaQuery(props.theme.breakpoints.up('sm'))} 
+const GraphWithStyle = withStyles(styles, { withTheme: true })(props => {
+  const isWide = useMediaQuery(props.theme.breakpoints.up('sm'))
+  return <Graph 
+    smUpWidth={isWide} 
     {...props}
-  />)
+  />
+})
  
 const StyledGraphWithRoute = props => <Route 
     path={`${props.match.path}/:configuration?`}
