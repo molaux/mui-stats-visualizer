@@ -421,16 +421,16 @@ const CustomTooltip = (dimensions, summize) => ({ active, payload, label, clasNa
 class Graph extends Component {
   constructor(props) {
     super(props);
-    const { autoConfigs, defaultConfig } = this.props
-    this.state = { 
-      granularity: autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day',
-      graphType: 'line',
-      graphStack: false,
-      keys: [],
+    const { autoConfigs, defaultConfig, defaultGranularity, defaultDurationUnit, defaultDurationAmount, defaultKeys, defaultGraphType, defaultGraphStack } = this.props
+    this.state = {
+      granularity: defaultGranularity || (autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day'),
+      graphType: defaultGraphType || 'line',
+      graphStack: defaultGraphStack !== undefined && defaultGraphStack !== null ? defaultGraphStack : false,
+      keys: defaultKeys || [],
       dimensions: {},
       autoConfig: defaultConfig,
-      durationUnit: autoConfigs[defaultConfig].durationUnit,
-      durationAmount: autoConfigs[defaultConfig].durationAmount,
+      durationUnit: defaultDurationUnit || autoConfigs[defaultConfig].durationUnit,
+      durationAmount: defaultDurationAmount || autoConfigs[defaultConfig].durationAmount,
       dates: autoConfigs[defaultConfig].dates()
     }
     logger.log('V: init')
@@ -448,6 +448,9 @@ class Graph extends Component {
 
   handleChangeKeys (event) {
     this.setState({ keys: Array.isArray(event) ? event : event.target.value })
+    if (typeof this.props.onDimensionsSelectionChange === 'function') {
+      this.props.onDimensionsSelectionChange(Array.isArray(event) ? event : event.target.value)
+    }
   }
 
   dateFormatter(granularity) {
@@ -463,14 +466,23 @@ class Graph extends Component {
 
   handleChangeGraphType(event) {
     this.setState({ graphType: event.target.value })
+    if (typeof this.props.onGraphTypeChange === 'function') {
+      this.props.onGraphTypeChange(event.target.value)
+    }
   }
 
   handleChangeGraphStack(event) {
     this.setState({ graphStack: event.target.checked })
+    if (typeof this.props.onGraphStackChange === 'function') {
+      this.props.onGraphStackChange(event.target.checked)
+    }
   }
 
   handleChangeGranularity(event) {
     this.setState({ granularity: event.target.value })
+    if (typeof this.props.onGranularityChange === 'function') {
+      this.props.onGranularityChange(event.target.value)
+    }
   }
 
   handleChangeDurationAmount (event) {
@@ -479,7 +491,10 @@ class Graph extends Component {
         autoConfig: null,
         durationAmount: event.target.value
       })
-    }    
+      if (typeof this.props.onDurationAmountChange === 'function') {
+        this.props.onDurationAmountChange(parseInt(event.target.value, 10))
+      }
+    }
   }
   
   handleChangeDurationUnit (event) {
@@ -487,6 +502,9 @@ class Graph extends Component {
       autoConfig: null,
       durationUnit: event.target.value
     })
+    if (typeof this.props.onDurationUnitChange === 'function') {
+      this.props.onDurationUnitChange(event.target.value)
+    }
   }
 
   handleChangeAutoconfig (event) {
@@ -498,6 +516,9 @@ class Graph extends Component {
       dates: autoConfigs[event.target.value].dates(),
       autoConfig: event.target.value
     })
+    if (typeof this.props.onAutoconfigChange === 'function') {
+      this.props.onAutoconfigChange(event.target.value)
+    }
   }
 
   handleChangeDate(j, date, ...rest) {
@@ -537,7 +558,6 @@ class Graph extends Component {
 
   componentDidUpdate(prevProps, prevState, snapshot) {
     logger.log('V: did update')
-    this.setState({initKeys: false})
     if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
       logger.log('V: pushing new url', `${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
       this.props.history.push(`${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
@@ -578,6 +598,9 @@ class Graph extends Component {
         ...state,
         ...urlConfiguration
       }))
+    } else {
+      logger.log('V: pushing new url', `${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
+      this.props.history.push(`${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
     }
   }
 
