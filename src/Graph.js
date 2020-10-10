@@ -33,6 +33,8 @@ import DeleteIcon from '@material-ui/icons/Cancel'
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 import TrendingDownIcon from '@material-ui/icons/TrendingDown'
 import TrendingUpIcon from '@material-ui/icons/TrendingUp'
+import TrendingFlatIcon from '@material-ui/icons/TrendingFlat'
+import Color from 'color'
 
 import {
   LocalizationProvider,
@@ -209,9 +211,11 @@ const resolveObjectKeyChain = (o, keyChain) => keyChain
       const openTokenIndex = property.indexOf('[')
       const arrayName = property.substring(0, openTokenIndex)
       const index =  property.substring(openTokenIndex + 1, property.length - 1)
-      return ro[arrayName][index]
+      const value = ro[arrayName][index]
+      return value === undefined ? 0 : value
     } else {
-      return ro[property]
+      const value = ro[property]
+      return value === undefined ? 0 : value
     }
   }, o)
 
@@ -290,8 +294,9 @@ const Share = ({value}) => <Box component="span" style={{
 const VariationValue = ({value}) => <>
   {value > 0
     ? <TrendingUpIcon style={{margin: '0 0.2em -0.3em 0.2em'}} size="small"/>
-    : value < 0 ? <TrendingDownIcon style={{margin: '0 0.2em -0.3em 0.2em'}} size="small"/>
-    : null }
+    : value < 0
+    ? <TrendingDownIcon style={{margin: '0 0.2em -0.3em 0.2em'}} size="small"/>
+    : <TrendingFlatIcon style={{margin: '0 0.2em -0.3em 0.2em'}} size="small"/> }
   {Math.abs(value).toLocaleString('fr-FR', {style: 'percent', minimumFractionDigits: 1})}
 </>
 export const Variation = ({value}) => {
@@ -661,7 +666,23 @@ class Graph extends Component {
       }))
     
     // Generate colors
-    const colors = this.generateColors(series.map((v, i) => keys.map(key => `${i}.${key}`)).flat())
+    const mostRecentSerieIndex = series.length - 1
+    const DesaturationIdealStep = 0.3
+    const DesaturationMax = 1
+    const desaturationAmount = DesaturationIdealStep * mostRecentSerieIndex > DesaturationMax ? DesaturationMax : DesaturationIdealStep * mostRecentSerieIndex
+    const desaturationStep = series.length > 1 ? desaturationAmount / (series.length - 1) : 0
+    const LuminosityIdealStep = 0.3
+    const LuminosityMax = 0.6
+    const luminosityAmount = LuminosityIdealStep * mostRecentSerieIndex > LuminosityMax ? LuminosityMax : LuminosityIdealStep * mostRecentSerieIndex
+    const luminosityStep = series.length > 1 ? luminosityAmount / (series.length - 1) : 0
+    const keysColors = this.generateColors(keys)
+    const colors = {}
+    for (let serieIndex = mostRecentSerieIndex; serieIndex >= 0; serieIndex--) {
+      for (const key in keysColors) {
+        const t = mostRecentSerieIndex - serieIndex
+        colors[`${serieIndex}.${key}`] = Color(keysColors[key]).desaturate(t * desaturationStep).lighten(t * luminosityStep)
+      }
+    }
 
     // If not set, auto determine dimensions selector widget type
     if (!dimensionsSelector) {
@@ -1053,9 +1074,6 @@ const DataViz = ({
         <div className={classes.fullContainer}>
           <ResponsiveContainer id="987dazad__" >
             <ChartComponent
-                // onMouseEnter={console.log.bind(null, 'enter')}
-                // onMouseMove={console.log.bind(null, 'move')}
-                // onMouseLeave={console.log.bind(null, 'leave')}
                 data={series}
                 margin={{
                   top: 0,
