@@ -17,7 +17,6 @@ import LineChartIcon from '@material-ui/icons/ShowChart'
 import ShareChartIcon from '@material-ui/icons/ViewWeek'
 import ValueChartIcon from '@material-ui/icons/Equalizer'
 import StackedLineChartIcon from '@material-ui/icons/StackedLineChart'
-import MultilineChartIcon from '@material-ui/icons/MultilineChart'
 
 import { format } from 'date-fns'
 import frLocale from "date-fns/locale/fr"
@@ -54,6 +53,7 @@ export const DataViz = ({
   durationAmount,
   durationUnit,
   granularity,
+  onGranularityChange,
   graphStack,
   onGraphStackChange,
   classes,
@@ -175,7 +175,7 @@ export const DataViz = ({
   logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>
-      <Table className={classes.table}>
+      <Table className={classes.table} size="small" >
         <TableHead>
           <TableRow>
             <TableCell>
@@ -217,7 +217,7 @@ export const DataViz = ({
           <TableRow key={i}>
             <TableCell>
               <Typography variant={smUpWidth ? "h6" : "subtitle2"} gutterBottom={graphStack && dimensionsTypesAreHomogenes !== null}>
-              {format(dates[i], dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {durationAmount}&nbsp;{(durationAmount > 1 ? plural(timeAggregations[durationUnit]) : timeAggregations[durationUnit]).toLowerCase()}
+              {format(dates[i], dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {durationAmount}&nbsp;{(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}
               </Typography>
               {/* Check if graph is stacked and dimensions have same type */}
               {graphStack && dimensionsTypesAreHomogenes
@@ -282,9 +282,23 @@ export const DataViz = ({
       <Box flexGrow={1}/>
       <ToggleButtonGroup
         size="small" 
+        value={granularity}
+        exclusive
+        onChange={(e, value) => value && typeof onGranularityChange === 'function' ? onGranularityChange(value) : null}
+        aria-label="text alignment"
+      >
+        {Object.keys(timeAggregations).map(key => {
+          const { value: label, icon: Icon } = timeAggregations[key]
+          return <ToggleButton title={`Agréger par ${label.toLowerCase()}`} key={key} value={key} aria-label="value chart">
+            <Icon />
+          </ToggleButton>
+        })}
+      </ToggleButtonGroup>
+      <ToggleButtonGroup
+        size="small"
         value={representationMode}
         exclusive
-        onChange={(e, value) => value ? setRepresentationMode(value) : null}
+        onChange={(e, value) => value && typeof setRepresentationMode === 'function' ? setRepresentationMode(value) : null}
         aria-label="text alignment"
       >
         <ToggleButton title="Valeurs" value="value" aria-label="value chart">
@@ -298,7 +312,7 @@ export const DataViz = ({
         size="small" 
         value={graphType}
         exclusive
-        onChange={(e, value) => value ? onGraphTypeChange(value) : null}
+        onChange={(e, value) => value && typeof onGraphTypeChange === 'function' ? onGraphTypeChange(value) : null}
         aria-label="text alignment"
       >
         <ToggleButton title="Graph en barres" value="bar" aria-label="Bar chart">
@@ -314,7 +328,9 @@ export const DataViz = ({
         selected={graphStack}
         title="Empiler"
         onChange={() => {
-          onGraphStackChange(!graphStack);
+          if (typeof onGraphStackChange === 'function') {
+            onGraphStackChange(!graphStack)
+          }
         }}
       >
         <StackedLineChartIcon />

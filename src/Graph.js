@@ -5,16 +5,13 @@ import { DataViz } from './DataViz'
 
 import strtotime from 'locutus/php/datetime/strtotime'
 import TextField from '@material-ui/core/TextField'
-import Radio from '@material-ui/core/Radio'
-import Checkbox from '@material-ui/core/Checkbox'
-import RadioGroup from '@material-ui/core/RadioGroup'
-import FormControlLabel from '@material-ui/core/FormControlLabel'
 import FormControl from '@material-ui/core/FormControl'
 import FormLabel from '@material-ui/core/FormLabel'
 import Input from '@material-ui/core/Input'
 import MenuItem from '@material-ui/core/MenuItem'
 import Select from '@material-ui/core/Select'
 import Chip from '@material-ui/core/Chip'
+import Box from '@material-ui/core/Box'
 
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 
@@ -26,6 +23,11 @@ import Divider from '@material-ui/core/Divider'
 
 import TableSelect from './TableSelect'
 
+import HourIcon from '@material-ui/icons/AccessTime'
+import DayIcon from '@material-ui/icons/ViewDay'
+import WeekIcon from '@material-ui/icons/ViewWeek'
+import MonthIcon from '@material-ui/icons/CalendarToday'
+import YearIcon from '@material-ui/icons/ViewArray'
 
 import DateFnsUtils from '@date-io/date-fns'
 import frLocale from "date-fns/locale/fr"
@@ -33,9 +35,20 @@ import frLocale from "date-fns/locale/fr"
 import gql from 'graphql-tag'
 import { graphql } from '@apollo/react-hoc'
 
-import { withStyles } from '@material-ui/core/styles'
+import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
 import ggChartColors from './ChartColors'
 import plural from 'pluralize-fr'
+
+import { createMuiTheme } from '@material-ui/core'
+
+const darkTheme = createMuiTheme({
+  palette: {
+    type: 'dark',
+  },
+  typography: {
+    useNextVariants: true,
+  }
+})
 
 import loggerGenerator from './utils/logger'
 import { DateTimeChip, AddDateTimeChip } from './DateTimeChip'
@@ -64,11 +77,12 @@ function getStyles(key, keys, theme) {
   }
 }
 
-const styles = theme => ({
+const styles = theme => {
+  console.log(theme)
+  return ({
   graph: {
     position: 'relative',
-    marginTop: theme.spacing(3),
-    marginBottom: theme.spacing(5),
+    marginTop: 0,
     boxSizing: 'border-box',
   },
   pie: {
@@ -102,8 +116,46 @@ const styles = theme => ({
       paddingTop: theme.spacing(1),
       paddingBottom: theme.spacing(1)
     },
-    maxWidth: '100%',
     boxSizing: 'border-box',
+  },
+  numberField: {
+    '& input[type=number]': {
+      textAlign: 'right',
+      paddingRight: theme.spacing(2),
+      width: '5em',
+      '-webkit-appearance': 'textfield',
+      '-moz-appearance': 'textfield',
+      'appearance': 'textfield',
+      '&::-webkit-inner-spin-button,&::-webkit-outer-spin-button': { 
+        '-webkit-appearance': 'none'
+      }
+    }
+  },
+  selectButton: {
+    paddingLeft: theme.spacing(2), 
+    borderRadius: `0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0!important`,
+    backgroundColor: theme.palette.primary.main,
+    '&:before': {
+      borderBottom: 0
+    },
+    '&:after': {
+      borderBottom: 0
+    },
+    '&:active': {
+      borderBottom: 0
+    },
+    '&:hover:before': {
+      borderBottom: '0!important'
+    },
+    '&:hover:after': {
+      borderBottom: '0!important'
+    },
+    '&:active:before': {
+      borderBottom: '0!important'
+    },
+    '&:active:after': {
+      borderBottom: '0!important'
+    },
   },
   radioGroup: {
     margin: theme.spacing(1, 0),
@@ -111,9 +163,9 @@ const styles = theme => ({
   chips: {
     display: 'flex',
     flexWrap: 'wrap',
-  },
-  table: {
-    marginBottom: theme.spacing(4),
+    '& > *': {
+      margin: theme.spacing(0.5)
+    }
   },
   paddedContent: {
     position: 'relative',
@@ -142,7 +194,7 @@ const styles = theme => ({
     width: '100%',
     height: '100%',
   }
-})
+})}
 
 const STATS_QUERY = gql`
   query Statistics($granularity: String!, $duration: String!, $series: [DimensionType!]) {
@@ -218,10 +270,10 @@ class Graph extends Component {
     }
   }
 
-  handleChangeGranularity(event) {
-    this.setState({ granularity: event.target.value })
+  handleChangeGranularity(value) {
+    this.setState({ granularity: value })
     if (typeof this.props.onGranularityChange === 'function') {
-      this.props.onGranularityChange(event.target.value)
+      this.props.onGranularityChange(value)
     }
   }
 
@@ -371,11 +423,11 @@ class Graph extends Component {
 
     if ( !timeAggregations ) {
       timeAggregations = {
-        hour: 'Heure',
-        day: 'Jour',
-        week: 'Semaine',
-        month: 'Mois',
-        year: 'An'
+        hour: { value: 'Heure', icon: HourIcon },
+        day: { value: 'Jour', icon: DayIcon },
+        week: { value: 'Semaine', icon: WeekIcon },
+        month: { value: 'Mois', icon: MonthIcon },
+        year: { value: 'An', icon: YearIcon }
       }
     }
     
@@ -457,6 +509,7 @@ class Graph extends Component {
         graphOptions={graphOptions}
         colors={colors}
         granularity={this.state.granularity}
+        onGranularityChange={this.handleChangeGranularity.bind(this)}
         durationAmount={this.state.durationAmount}
         durationUnit={this.state.durationUnit}
         series={series}
@@ -532,39 +585,33 @@ class Graph extends Component {
       </div>
 
       <Divider variant="middle" />
-
-      <FormControl className={classes.formControl}>
-        <FormLabel>Agrégation</FormLabel>
-        <Select
-          value={this.state.granularity}
-          onChange={this.handleChangeGranularity.bind(this)}
-        >
-          {Object.keys(timeAggregations).map(taKey => 
-            <MenuItem key={taKey} value={taKey}>Par {timeAggregations[taKey].toLowerCase()}</MenuItem>
-          )}
-        </Select>
-      </FormControl>
       
       <FormControl className={classes.formControl} style={{marginLeft: theme.spacing(1)}}>
         <FormLabel>Durée</FormLabel>
-        <TextField
-          id="duration-amount"
-          value={this.state.durationAmount}
-          onChange={this.handleChangeDurationAmount.bind(this)}
-          type="number"
-          InputLabelProps={{
-            shrink: true
-          }}
-          margin="normal"
-        />
-        <Select
-          value={this.state.durationUnit}
-          onChange={this.handleChangeDurationUnit.bind(this)}
-        >
-          {Object.keys(timeAggregations).map(taKey => 
-            <MenuItem key={taKey} value={taKey}>{this.state.durationAmount > 1 ? plural(timeAggregations[taKey]) : timeAggregations[taKey]}</MenuItem>
-          )}
-        </Select>
+        <Box display="flex" alignItems="end">
+          <TextField
+            id="duration-amount"
+            value={this.state.durationAmount}
+            onChange={this.handleChangeDurationAmount.bind(this)}
+            type="number"
+            InputLabelProps={{
+              shrink: true
+            }}
+            classes={{root: classes.numberField}}
+          />
+          <MuiThemeProvider theme={darkTheme}> 
+            <Select
+              value={this.state.durationUnit}
+              onChange={this.handleChangeDurationUnit.bind(this)}
+              className={classes.selectButton}
+              
+            >
+              {Object.keys(timeAggregations).map(taKey => 
+                <MenuItem key={taKey} value={taKey}>{this.state.durationAmount > 1 ? plural(timeAggregations[taKey].value) : timeAggregations[taKey].value}</MenuItem>
+              )}
+            </Select>
+          </MuiThemeProvider>
+        </Box>
       </FormControl>
       
     </>
