@@ -18,6 +18,20 @@ import ShareChartIcon from '@material-ui/icons/ViewWeek'
 import ValueChartIcon from '@material-ui/icons/Equalizer'
 import StackedLineChartIcon from '@material-ui/icons/StackedLineChart'
 
+import TextField from '@material-ui/core/TextField'
+import AddIcon from '@material-ui/icons/Add'
+import DateIcon from '@material-ui/icons/Timeline'
+import IconButton from '@material-ui/core/IconButton'
+import DeleteIcon from '@material-ui/icons/Delete'
+import KeyboardArrowLeftIcon from '@material-ui/icons/KeyboardArrowLeft'
+import KeyboardArrowRightIcon from '@material-ui/icons/KeyboardArrowRight'
+import AccessTimeIcon from '@material-ui/icons/AccessTime'
+import DateRangeIcon from '@material-ui/icons/DateRange'
+
+import {
+  DateTimePicker,
+  DatePicker } from '@material-ui/pickers'
+
 import { format } from 'date-fns'
 import frLocale from "date-fns/locale/fr"
 import plural from 'pluralize-fr'
@@ -26,8 +40,13 @@ import deepmerge from 'deepmerge'
 
 import loggerGenerator from './utils/logger'
 const logger = loggerGenerator('error')
+
 import { resolveObjectKeyChain } from './utils/data'
 import { VariationValue, ShareValue, formatSerieValue } from './DataRepresentation'
+
+import { IntegerWithSelectField } from './IntegerWithSelectField'
+
+
 
 import {
   ResponsiveContainer,
@@ -51,7 +70,9 @@ export const DataViz = ({
   colors,
   timeAggregations,
   durationAmount,
+  onDurationAmountChange,
   durationUnit,
+  onDurationUnitChange,
   granularity,
   onGranularityChange,
   graphStack,
@@ -65,6 +86,9 @@ export const DataViz = ({
   smUpWidth,
   keys,
   dates: propDates,
+  onDateDelete,
+  onDateChange,
+  onDateAdd,
   data
 }) => {
   const [{ series, reduction, dimensionsTypesAreHomogenes, dates }, setState] = useState({
@@ -82,6 +106,8 @@ export const DataViz = ({
     : !graphStack
       ? [ LineChart, Line ]
       : [ AreaChart, Area ]
+  
+  const graphContainerRef = useRef(null)
   
   useEffect(() => {
     if (loading) {
@@ -170,7 +196,6 @@ export const DataViz = ({
     }
   }, [data, dates, keys, dateFormatterGenerator, granularity, dimensions])
 
-  const graphContainerRef = useRef(null)
   
   logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
@@ -179,7 +204,16 @@ export const DataViz = ({
         <TableHead>
           <TableRow>
             <TableCell>
+              {typeof onDateAdd === 'function' 
+                ? <IconButton size="small" onClick={onDateAdd}><AddIcon/></IconButton>
+                : null
+              }
+            </TableCell>
+            <TableCell>
               Série
+            </TableCell>
+            <TableCell>
+              Total sur la période
             </TableCell>
             {reduction.length 
               ? Object.keys(reduction[0]).map((key, i) =>
@@ -216,27 +250,58 @@ export const DataViz = ({
         ).map(({dimensions: _dimensions, variation, total, totalVariation}, i) =>
           <TableRow key={i}>
             <TableCell>
-              <Typography variant={smUpWidth ? "h6" : "subtitle2"} gutterBottom={graphStack && dimensionsTypesAreHomogenes !== null}>
-              {format(dates[i], dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale })}, {durationAmount}&nbsp;{(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}
-              </Typography>
-              {/* Check if graph is stacked and dimensions have same type */}
+              {typeof onDateDelete === 'function' 
+                ? <IconButton size="small" onClick={() => onDateDelete(i)}><DeleteIcon/></IconButton>
+                : null}
+            </TableCell>
+            <TableCell variant="head" component="th">
+              {granularity === 'hour'
+                ? <DateTimePicker
+                  renderInput={props => <TextField {...props} style={{width: '28ch'}} helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
+                  value={dates[i]}
+                  disableFuture
+                  inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
+                  // labelFunc={value => value ? format(value, dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale }) : ''}
+                  ampm={false}
+                  onAccept={date => onDateChange(date, i)}
+                  onChange={() => null}
+                  leftArrowIcon={<KeyboardArrowLeftIcon/>}
+                  rightArrowIcon={<KeyboardArrowRightIcon/>}
+                  allowSameDateSelection={true}
+                  dateRangeIcon={<DateRangeIcon/>}
+                  timeIcon={<AccessTimeIcon/>}
+                />
+                : <DatePicker
+                  value={dates[i]}
+                  disableFuture
+                  renderInput={props => <TextField {...props} style={{width: '22ch'}} helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
+                  inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
+                  // labelFunc={value => 'date:' + value ? format(value, dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' ), { locale: frLocale }) : ''}
+                  onAccept={date => onDateChange(date, i)}
+                  onChange={() => null}
+                  leftArrowIcon={<KeyboardArrowLeftIcon/>}
+                  rightArrowIcon={<KeyboardArrowRightIcon/>}
+                  allowSameDateSelection={true}
+                />}
+            </TableCell>
+            <TableCell>
               {graphStack && dimensionsTypesAreHomogenes
-                      ? <Box style={{
-                        whiteSpace: 'nowrap',
-                        color: totalVariation !== null
-                          ? totalVariation - 1 > 0
-                            ? 'green'
-                            : totalVariation - 1 < 0
-                              ? 'red'
-                              : 'inherit'
-                          : 'inherit'
-                        }}>
-                        {formatSerieValue(dimensions[Object.keys(_dimensions)[0]], total)}
-                        {totalVariation !== null 
-                          ? <Box component="span" style={{marginLeft:'1em'}}>(<VariationValue value={totalVariation - 1}/> )</Box>
-                          : null}
-                      </Box>
-                      : null }
+                ? <Box style={{
+                  whiteSpace: 'nowrap',
+                  color: totalVariation !== null
+                    ? totalVariation - 1 > 0
+                      ? 'green'
+                      : totalVariation - 1 < 0
+                        ? 'red'
+                        : 'inherit'
+                    : 'inherit'
+                  }}>
+                  {formatSerieValue(dimensions[Object.keys(_dimensions)[0]], total)}
+                  {totalVariation !== null 
+                    ? <Box component="span" style={{marginLeft:'1em'}}>(<VariationValue value={totalVariation - 1}/> )</Box>
+                    : null}
+                </Box>
+                : null }
             </TableCell>
             {Object.keys(_dimensions).map(key => 
               <TableCell 
@@ -279,7 +344,13 @@ export const DataViz = ({
     </div>
 
     <Toolbar variant="dense" className={classes.toolbar}>
-      <Box flexGrow={1}/>
+      <IntegerWithSelectField
+        integerValue={durationAmount}
+        onIntegerValueChange={onDurationAmountChange}
+        selectValue={durationUnit}
+        onSelectValueChange={onDurationUnitChange}
+        selectValues={Object.keys(timeAggregations).map(taKey => [taKey, timeAggregations[taKey].value])}
+        />
       <ToggleButtonGroup
         size="small" 
         value={granularity}
@@ -294,6 +365,7 @@ export const DataViz = ({
           </ToggleButton>
         })}
       </ToggleButtonGroup>
+      
       <ToggleButtonGroup
         size="small"
         value={representationMode}
@@ -336,24 +408,23 @@ export const DataViz = ({
         <StackedLineChartIcon />
       </ToggleButton>
     </Toolbar>
-
     <div className={classes.paddedContent} ref={graphContainerRef}>
       <div className={classes.ratioContainer} >
         <div className={classes.fullContainer}>
-          <ResponsiveContainer id="987dazad__" >
+          <ResponsiveContainer id="987sdazad__">
             <ChartComponent
-                data={series}
-                margin={{
-                  top: 0,
-                  right: 0,
-                  left: 20,
-                  bottom: smUpWidth
-                    ? ['hour', 'day', 'week'].includes(granularity)
-                      ? 90
-                      : 50
-                    : ['hour', 'day', 'week'].includes(granularity)
-                    ? 65
-                    : 45 }}
+              data={series}
+              margin={{
+                top: 0,
+                right: 0,
+                left: 20,
+                bottom: smUpWidth
+                  ? ['hour', 'day', 'week'].includes(granularity)
+                    ? 90
+                    : 50
+                  : ['hour', 'day', 'week'].includes(granularity)
+                  ? 65
+                  : 45 }}
               >
               <YAxis
                 tickFormatter={
@@ -382,7 +453,6 @@ export const DataViz = ({
                     position: {x:0, y: graphContainerRef.current?.offsetHeight ?? 150}
                   }
                   : null) }
-                
                 allowEscapeViewBox={{ x: false, y: true }}
                 wrapperStyle={{ fontSize: 10, zIndex: 1200, ...(!smUpWidth ? { width: '100%' } : null) }}
                 content={CustomTooltip(dimensions, graphStack)}

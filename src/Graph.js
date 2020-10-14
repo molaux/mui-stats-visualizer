@@ -4,14 +4,12 @@ import { Route, withRouter } from 'react-router-dom'
 import { DataViz } from './DataViz'
 
 import strtotime from 'locutus/php/datetime/strtotime'
-import TextField from '@material-ui/core/TextField'
 import FormControl from '@material-ui/core/FormControl'
 import FormLabel from '@material-ui/core/FormLabel'
 import Input from '@material-ui/core/Input'
 import MenuItem from '@material-ui/core/MenuItem'
 import Select from '@material-ui/core/Select'
 import Chip from '@material-ui/core/Chip'
-import Box from '@material-ui/core/Box'
 
 import useMediaQuery from '@material-ui/core/useMediaQuery'
 
@@ -35,23 +33,10 @@ import frLocale from "date-fns/locale/fr"
 import gql from 'graphql-tag'
 import { graphql } from '@apollo/react-hoc'
 
-import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
+import { withStyles } from '@material-ui/core/styles'
 import ggChartColors from './ChartColors'
-import plural from 'pluralize-fr'
-
-import { createMuiTheme } from '@material-ui/core'
-
-const darkTheme = createMuiTheme({
-  palette: {
-    type: 'dark',
-  },
-  typography: {
-    useNextVariants: true,
-  }
-})
 
 import loggerGenerator from './utils/logger'
-import { DateTimeChip, AddDateTimeChip } from './DateTimeChip'
 const logger = loggerGenerator('error')
 
 const ITEM_HEIGHT = 48
@@ -91,7 +76,11 @@ const styles = theme => {
   toolbar: {
     marginTop: theme.spacing(2),
     marginBottom: theme.spacing(2),
+    justifyContent: 'right',
+    alignItems: 'space-between',
+    flexWrap: 'wrap',
     '& > *': {
+      marginBottom: theme.spacing(2),
       marginLeft: theme.spacing(2)
     }
   },
@@ -118,45 +107,7 @@ const styles = theme => {
     },
     boxSizing: 'border-box',
   },
-  numberField: {
-    '& input[type=number]': {
-      textAlign: 'right',
-      paddingRight: theme.spacing(2),
-      width: '5em',
-      '-webkit-appearance': 'textfield',
-      '-moz-appearance': 'textfield',
-      'appearance': 'textfield',
-      '&::-webkit-inner-spin-button,&::-webkit-outer-spin-button': { 
-        '-webkit-appearance': 'none'
-      }
-    }
-  },
-  selectButton: {
-    paddingLeft: theme.spacing(2), 
-    borderRadius: `0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0!important`,
-    backgroundColor: theme.palette.primary.main,
-    '&:before': {
-      borderBottom: 0
-    },
-    '&:after': {
-      borderBottom: 0
-    },
-    '&:active': {
-      borderBottom: 0
-    },
-    '&:hover:before': {
-      borderBottom: '0!important'
-    },
-    '&:hover:after': {
-      borderBottom: '0!important'
-    },
-    '&:active:before': {
-      borderBottom: '0!important'
-    },
-    '&:active:after': {
-      borderBottom: '0!important'
-    },
-  },
+  
   radioGroup: {
     margin: theme.spacing(1, 0),
   },
@@ -178,21 +129,6 @@ const styles = theme => {
       paddingLeft: 0,
       paddingRight: 0
     },
-  },
-  ratioContainer: {
-    paddingBottom: `${Math.round(GRAPH_WIDE_RATIO*100)}%`, /* width/height Ratio */
-    position: 'relative',
-    height: 0,
-    [theme.breakpoints.down('md')]: {
-      paddingBottom: `${Math.round(GRAPH_TINY_RATIO*100)}%`, /* width/height Ratio */
-    },
-  },
-  fullContainer: {
-    position: 'absolute',
-    top: '0',
-    left: '0',
-    width: '100%',
-    height: '100%',
   }
 })}
 
@@ -277,25 +213,25 @@ class Graph extends Component {
     }
   }
 
-  handleChangeDurationAmount (event) {
-    if (event.target.value !== '' && !isNaN(parseInt(event.target.value, 10))) {
+  handleChangeDurationAmount (value) {
+    if (value !== '' && !isNaN(parseInt(value, 10))) {
       this.setState({
         autoConfig: null,
-        durationAmount: event.target.value
+        durationAmount: value
       })
       if (typeof this.props.onDurationAmountChange === 'function') {
-        this.props.onDurationAmountChange(parseInt(event.target.value, 10))
+        this.props.onDurationAmountChange(parseInt(value, 10))
       }
     }
   }
   
-  handleChangeDurationUnit (event) {
+  handleChangeDurationUnit (value) {
     this.setState({
       autoConfig: null,
-      durationUnit: event.target.value
+      durationUnit: value
     })
     if (typeof this.props.onDurationUnitChange === 'function') {
-      this.props.onDurationUnitChange(event.target.value)
+      this.props.onDurationUnitChange(value)
     }
   }
 
@@ -483,7 +419,7 @@ class Graph extends Component {
     logger.log('V: render')
     
     // TODO: colors and stacks
-    return <>
+    return <LocalizationProvider dateAdapter={DateFnsUtils} locale={frLocale}>
       <FormControl className={classes.formControl}>
         <FormLabel htmlFor="autoconfig">Pré-configuration</FormLabel>
         <Select
@@ -511,12 +447,16 @@ class Graph extends Component {
         granularity={this.state.granularity}
         onGranularityChange={this.handleChangeGranularity.bind(this)}
         durationAmount={this.state.durationAmount}
+        onDurationAmountChange={this.handleChangeDurationAmount.bind(this)}
         durationUnit={this.state.durationUnit}
+        onDurationUnitChange={this.handleChangeDurationUnit.bind(this)}
         series={series}
         dimensions={this.props.dimensions}
         timeAggregations={timeAggregations}
-        
         dates={dates}
+        onDateAdd={this.handleAddDate.bind(this)}
+        onDateDelete={this.handleDeleteDate.bind(this)}
+        onDateChange={this.handleChangeDate.bind(this)}
         graphType={this.state.graphType}
         onGraphTypeChange={this.handleChangeGraphType.bind(this)}
         graphView={this.state.graphView}
@@ -547,9 +487,10 @@ class Graph extends Component {
               input={<Input id="select-multiple-chip" />}
               renderValue={selected => (
                 <div className={classes.chips}>
-                  {selected.map(value => (
+                  {selected.slice(0,5).map(value => (
                     <Chip key={value} label={this.props.dimensions[value].title} className={classes.chip} />
                   ))}
+                  {selected.length > 5 ? <Chip label={'...'} className={classes.chip} /> : null}
                 </div>
               )}
               MenuProps={MenuProps}
@@ -561,60 +502,8 @@ class Graph extends Component {
               ))}
             </Select>
         }
-        
       </FormControl>
-
-      <Divider variant="middle" />
-
-      <div className={classes.formControl}>
-      <LocalizationProvider dateAdapter={DateFnsUtils} locale={frLocale}>
-          <FormLabel>Séries temporelles</FormLabel>
-          <div className={classes.datesContainer}>
-            <AddDateTimeChip onClick={this.handleAddDate.bind(this)} />
-            {!smUpWidth ? <br/> : null}
-            {dates.map((date, i) => <DateTimeChip 
-              key={i}
-              date={date}
-              granularity={this.state.granularity}
-              formatter={this.dateFormatter(this.state.granularity === 'hour' ? 'hour' : 'day' )}
-              onChange={this.handleChangeDate.bind(this, i)} 
-              onDelete={this.handleDeleteDate.bind(this, i)} />)}
-           
-          </div>
-        </LocalizationProvider>
-      </div>
-
-      <Divider variant="middle" />
-      
-      <FormControl className={classes.formControl} style={{marginLeft: theme.spacing(1)}}>
-        <FormLabel>Durée</FormLabel>
-        <Box display="flex" alignItems="end">
-          <TextField
-            id="duration-amount"
-            value={this.state.durationAmount}
-            onChange={this.handleChangeDurationAmount.bind(this)}
-            type="number"
-            InputLabelProps={{
-              shrink: true
-            }}
-            classes={{root: classes.numberField}}
-          />
-          <MuiThemeProvider theme={darkTheme}> 
-            <Select
-              value={this.state.durationUnit}
-              onChange={this.handleChangeDurationUnit.bind(this)}
-              className={classes.selectButton}
-              
-            >
-              {Object.keys(timeAggregations).map(taKey => 
-                <MenuItem key={taKey} value={taKey}>{this.state.durationAmount > 1 ? plural(timeAggregations[taKey].value) : timeAggregations[taKey].value}</MenuItem>
-              )}
-            </Select>
-          </MuiThemeProvider>
-        </Box>
-      </FormControl>
-      
-    </>
+    </LocalizationProvider>
   }
 }
 
