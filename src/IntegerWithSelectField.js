@@ -3,7 +3,6 @@ import Box from '@material-ui/core/Box'
 import TextField from '@material-ui/core/TextField'
 import Select from '@material-ui/core/Select'
 import MenuItem from '@material-ui/core/MenuItem'
-import Divider from '@material-ui/core/Divider'
 import { makeStyles, fade } from '@material-ui/core/styles'
 
 import IconButton from '@material-ui/core/IconButton'

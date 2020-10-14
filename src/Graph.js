@@ -41,8 +41,6 @@ const logger = loggerGenerator('error')
 
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
-const GRAPH_TINY_RATIO = 0.7
-const GRAPH_WIDE_RATIO = 0.3
 
 const MenuProps = {
   PaperProps: {
@@ -62,9 +60,7 @@ function getStyles(key, keys, theme) {
   }
 }
 
-const styles = theme => {
-  console.log(theme)
-  return ({
+const styles = theme => ({
   graph: {
     position: 'relative',
     marginTop: 0,
@@ -84,20 +80,6 @@ const styles = theme => {
       marginLeft: theme.spacing(2)
     }
   },
-  tooltip: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    backdropFilter: 'blur(6px)',
-    padding: theme.spacing(0, 0.5, 0.5, 0.5),
-    borderRadius: theme.shape.borderRadius,
-    boxShadow: theme.shadows[3],
-    fontSize: '0.8em',
-    '& td': {
-      padding: theme.spacing(0.5, 1, 0.5, 1)
-    },
-    '& tr:last-child td': {
-      borderBottom: 0
-    }
-  },
   formControl: {
     padding: theme.spacing(3),
     [theme.breakpoints.down('sm')]: {
@@ -107,7 +89,6 @@ const styles = theme => {
     },
     boxSizing: 'border-box',
   },
-  
   radioGroup: {
     margin: theme.spacing(1, 0),
   },
@@ -117,20 +98,8 @@ const styles = theme => {
     '& > *': {
       margin: theme.spacing(0.5)
     }
-  },
-  paddedContent: {
-    position: 'relative',
-    boxSizing: 'border-box',
-    minWidth: '100%',
-    marginTop: theme.spacing(1),
-    paddingLeft: theme.spacing(3),
-    paddingRight: theme.spacing(3),
-    [theme.breakpoints.down('sm')]: {
-      paddingLeft: 0,
-      paddingRight: 0
-    },
   }
-})}
+})
 
 const STATS_QUERY = gql`
   query Statistics($granularity: String!, $duration: String!, $series: [DimensionType!]) {
@@ -467,7 +436,7 @@ class Graph extends Component {
         smUpWidth={smUpWidth}
         keys={keys}
         />
-      <Divider variant="middle" />
+      <Divider variant="middle" style={{marginBottom: theme.spacing(1)}}/>
       <FormControl className={classes.formControl} style={{minWidth: '100%'}}>
         <FormLabel>Dimensions</FormLabel>
         {dimensionsSelector === 'table'
