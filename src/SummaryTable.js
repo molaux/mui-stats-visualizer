@@ -28,10 +28,11 @@ const useStyles = makeStyles(theme => ({
 
 }))
 export const SummaryTable = ({
-    onDateAdd,
     reduction,
     dimensions,
+    onDateAdd,
     onDateDelete,
+    onDateChange,
     granularity,
     timeAggregations,
     durationAmount,
