@@ -104,6 +104,7 @@ export const SummaryTable = ({
               value={dates[i]}
               disableFuture
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
+              disableMaskedInput={true}
               ampm={false}
               onAccept={date => onDateChange(date, i)}
               onChange={() => null}
@@ -118,6 +119,7 @@ export const SummaryTable = ({
               disableFuture
               renderInput={props => <TextField {...props} style={{width: '23ch'}} helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
+              disableMaskedInput={true}
               onAccept={date => onDateChange(date, i)}
               onChange={() => null}
               leftArrowIcon={<KeyboardArrowLeftIcon/>}

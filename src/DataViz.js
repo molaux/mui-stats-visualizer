@@ -56,6 +56,8 @@ export const DataViz = ({
   onDateDelete,
   onDateChange,
   onDateAdd,
+  minDurationAmount,
+  maxDurationAmount,
   data
 }) => {
   const theme = useTheme()
@@ -165,10 +167,11 @@ export const DataViz = ({
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>
       <SummaryTable
-         onDateAdd={onDateAdd}
          reduction={reduction}
          dimensions={dimensions}
+         onDateAdd={onDateAdd}
          onDateDelete={onDateDelete}
+         onDateChange={onDateChange}
          granularity={granularity}
          timeAggregations={timeAggregations}
          durationAmount={durationAmount}
@@ -188,6 +191,7 @@ export const DataViz = ({
         selectValue={durationUnit}
         onSelectValueChange={onDurationUnitChange}
         selectValues={Object.keys(timeAggregations).map(taKey => [taKey, timeAggregations[taKey].value])}
+        minIntegerValue={minDurationAmount === undefined ? 1 : minDurationAmount} maxIntegerValue={maxDurationAmount}
         />
       <ToggleButtonGroup
         size="small" 
@@ -203,7 +207,6 @@ export const DataViz = ({
           </ToggleButton>
         })}
       </ToggleButtonGroup>
-      
       <ToggleButtonGroup
         size="small"
         value={representationMode}
