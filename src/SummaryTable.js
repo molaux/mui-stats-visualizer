@@ -107,7 +107,7 @@ export const SummaryTable = ({
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
               disableMaskedInput={true}
               ampm={false}
-              onAccept={date => onDateChange(date, i)}
+              onAccept={date => onDateChange(i, date)}
               onChange={() => null}
               leftArrowIcon={<KeyboardArrowLeftIcon/>}
               rightArrowIcon={<KeyboardArrowRightIcon/>}
@@ -121,7 +121,7 @@ export const SummaryTable = ({
               renderInput={props => <TextField {...props} style={{width: '23ch'}} helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
               disableMaskedInput={true}
-              onAccept={date => onDateChange(date, i)}
+              onAccept={date => onDateChange(i, date)}
               onChange={() => null}
               leftArrowIcon={<KeyboardArrowLeftIcon/>}
               rightArrowIcon={<KeyboardArrowRightIcon/>}
