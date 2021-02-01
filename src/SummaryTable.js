@@ -101,7 +101,7 @@ export const SummaryTable = ({
         <TableCell variant="head" component="th">
           {granularity === 'hour'
             ? <DateTimePicker
-              renderInput={props => <TextField {...props} style={{width: '28ch'}} helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
+              renderInput={props => <TextField {...props} style={{width: '28ch'}} variant="standard" helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
               value={dates[i]}
               disableFuture
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
@@ -114,11 +114,12 @@ export const SummaryTable = ({
               allowSameDateSelection={true}
               dateRangeIcon={<DateRangeIcon/>}
               timeIcon={<AccessTimeIcon/>}
+              variant="standard"
             />
             : <DatePicker
               value={dates[i]}
               disableFuture
-              renderInput={props => <TextField {...props} style={{width: '23ch'}} helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
+              renderInput={props => <TextField {...props} style={{width: '23ch'}} variant="standard" helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
               disableMaskedInput={true}
               onAccept={date => onDateChange(i, date)}
@@ -126,6 +127,7 @@ export const SummaryTable = ({
               leftArrowIcon={<KeyboardArrowLeftIcon/>}
               rightArrowIcon={<KeyboardArrowRightIcon/>}
               allowSameDateSelection={true}
+              
             />}
         </TableCell>
         <TableCell>

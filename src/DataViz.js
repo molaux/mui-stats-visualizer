@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react'
 
 import Box from '@material-ui/core/Box'
 
-import ToggleButton from '@material-ui/lab/ToggleButton'
-import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup'
+import ToggleButton from '@material-ui/core/ToggleButton'
+import ToggleButtonGroup from '@material-ui/core/ToggleButtonGroup'
 import Toolbar from '@material-ui/core/Toolbar'
 
 import BarChartIcon from '@material-ui/icons/BarChart'
