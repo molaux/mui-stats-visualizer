@@ -5,7 +5,7 @@
   "main": "build/index.js",
   "scripts": {
     "start": "webpack --mode=production --watch",
-    "build": "webpack --mode=production --display-modules"
+    "build": "webpack --mode=production"
   },
   "dependencies": {
     "color": "^3.1.3",
