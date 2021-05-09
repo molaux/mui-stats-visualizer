@@ -25,10 +25,9 @@ module.exports = {
     {
       'react': 'commonjs react',
       'react-dom': 'react-dom',
-      "apollo-boost": "apollo-boost",
       "graphql": "graphql",
-      "graphql-tag": "graphql-tag",
-      "@apollo/react-hoc": "@apollo/react-hoc",
+      "@apollo/client": "@apollo/client",
+      "@apollo/client/react/hoc": "@apollo/client/react/hoc",
       "react-router-dom": "react-router-dom",
       "@date-io/date-fns": "@date-io/date-fns",
       'date-fns': 'date-fns',

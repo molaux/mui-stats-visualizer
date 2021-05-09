@@ -20,7 +20,7 @@ import { VariationValue, ShareValue, formatSerieValue } from './DataRepresentati
 
 import {
   DateTimePicker,
-  DatePicker } from '@material-ui/pickers'
+  DatePicker } from '@material-ui/lab'
 
 import plural from 'pluralize-fr'
 

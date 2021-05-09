@@ -3,7 +3,8 @@ import Box from '@material-ui/core/Box'
 import TextField from '@material-ui/core/TextField'
 import Select from '@material-ui/core/Select'
 import MenuItem from '@material-ui/core/MenuItem'
-import { makeStyles, fade } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/core/styles'
+import { alpha } from '@material-ui/core/styles/colorManipulator'
 
 import IconButton from '@material-ui/core/IconButton'
 import DownIcon from '@material-ui/icons/KeyboardArrowDown'
@@ -14,7 +15,7 @@ import plural from 'pluralize-fr'
 const useStyles = makeStyles((theme) => ({
   numberFieldContainer: {
     borderRadius: theme.shape.borderRadius,
-    border: '1px solid ' + fade(theme.palette.action.active, 0.12),
+    border: '1px solid ' + alpha(theme.palette.action.active, 0.12),
     '& .MuiInput-underline:before, & .MuiInput-underline:after, & .MuiInput-underline:hover:before, & .MuiInput-underline:hover:after': {
       borderBottom: 0
     },
@@ -22,7 +23,7 @@ const useStyles = makeStyles((theme) => ({
       borderRadius: 0,
       paddingTop: 7,
       paddingBottom: 7,
-      color: fade(theme.palette.action.active, 0.38)
+      color: alpha(theme.palette.action.active, 0.38)
     }
   },
   numberField: {
@@ -44,8 +45,8 @@ const useStyles = makeStyles((theme) => ({
   selectButton: {
     borderLeftWidth: '1px',
     borderLeftStyle: 'solid',
-    borderLeftColor: fade(theme.palette.action.active, 0.12),
-    backgroundColor: fade(theme.palette.action.active, 0.06),
+    borderLeftColor: alpha(theme.palette.action.active, 0.12),
+    backgroundColor: alpha(theme.palette.action.active, 0.06),
     color: theme.palette.action.active,
     borderRadius: `0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0!important`,
     '& .MuiSelect-root': {

@@ -15,7 +15,7 @@ import useMediaQuery from '@material-ui/core/useMediaQuery'
 
 import Color from 'color'
 
-import { LocalizationProvider } from '@material-ui/pickers'
+import { LocalizationProvider } from '@material-ui/lab'
 
 import Divider from '@material-ui/core/Divider'
 
@@ -30,8 +30,8 @@ import YearIcon from '@material-ui/icons/ViewArray'
 import DateFnsUtils from '@date-io/date-fns'
 import frLocale from "date-fns/locale/fr"
 
-import gql from 'graphql-tag'
-import { graphql } from '@apollo/react-hoc'
+import { gql } from '@apollo/client'
+import { graphql } from '@apollo/client/react/hoc'
 
 import { withStyles } from '@material-ui/core/styles'
 import ggChartColors from './ChartColors'
@@ -389,7 +389,7 @@ class Graph extends Component {
     
     // TODO: colors and stacks
     return <LocalizationProvider dateAdapter={DateFnsUtils} locale={frLocale}>
-      <FormControl className={classes.formControl}>
+      <FormControl variant="standard" className={classes.formControl}>
         <FormLabel htmlFor="autoconfig">Pré-configuration</FormLabel>
         <Select
           value={this.state.autoConfig === null ? 'custom' : this.state.autoConfig}
