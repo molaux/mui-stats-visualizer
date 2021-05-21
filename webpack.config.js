@@ -34,7 +34,8 @@ module.exports = {
       'recompose': 'recompose',
       'recharts': 'recharts',
       'deepmerge': 'deepmerge',
-      'locutus': 'locutus'
+      'locutus': 'locutus',
+      'recharts': 'recharts'
     },
     /@material-ui\/.*/,
     /date-fns\/.*/

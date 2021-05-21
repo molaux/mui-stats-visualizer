@@ -1,6 +1,6 @@
 {
   "name": "@molaux/mui-stats-visualizer",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A macro component that configures, fetches and display stats data",
   "main": "build/index.js",
   "scripts": {
@@ -13,7 +13,6 @@
     "locutus": "^2.0.14",
     "pluralize-fr": "^1.0.1",
     "react-fast-compare": "^3.2.0",
-    "recharts": "^2.0.4",
     "recompose": "^0.30.0"
   },
   "peerDependencies": {
@@ -26,7 +25,8 @@
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "^4.0.1"
+    "react-scripts": "^4.0.1",
+    "recharts": "^2.0.9"
   },
   "keywords": [
     "react",
