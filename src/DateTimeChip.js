@@ -12,7 +12,8 @@ import AddIcon from '@material-ui/icons/Add'
 
 import {
   DateTimePicker,
-  DatePicker } from '@material-ui/lab'
+  DatePicker
+} from '@material-ui/lab'
 
 import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
 import { createMuiTheme } from '@material-ui/core'
