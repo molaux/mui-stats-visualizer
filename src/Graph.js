@@ -110,7 +110,7 @@ const STATS_QUERY = gql`
 class Graph extends Component {
   constructor(props) {
     super(props);
-    const { autoConfigs, defaultConfig, defaultGranularity, defaultDurationUnit, defaultDurationAmount, defaultKeys, defaultGraphType, defaultGraphStack, defaultGraphView } = this.props
+    const { autoConfigs, defaultConfig, defaultGranularity, defaultDurationUnit, defaultDurationAmount, defaultKeys, defaultGraphType, defaultGraphStack, defaultGraphView, defaultDates } = this.props
     this.state = {
       granularity: defaultGranularity || (autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day'),
       graphType: defaultGraphType || 'line',
@@ -118,10 +118,10 @@ class Graph extends Component {
       graphStack: defaultGraphStack !== undefined && defaultGraphStack !== null ? defaultGraphStack : false,
       keys: defaultKeys || [],
       dimensions: {},
-      autoConfig: defaultConfig,
+      autoConfig: defaultConfig === 'custom' ? null : defaultConfig,
       durationUnit: defaultDurationUnit || autoConfigs[defaultConfig].durationUnit,
       durationAmount: defaultDurationAmount || autoConfigs[defaultConfig].durationAmount,
-      dates: autoConfigs[defaultConfig].dates()
+      dates: defaultDates || autoConfigs[defaultConfig]?.dates() || []
     }
     logger.log('V: init')
 
@@ -191,6 +191,9 @@ class Graph extends Component {
       if (typeof this.props.onDurationAmountChange === 'function') {
         this.props.onDurationAmountChange(parseInt(value, 10))
       }
+      if (typeof this.props.onAutoconfigChange === 'function') {
+        this.props.onAutoconfigChange('custom')
+      }
     }
   }
   
@@ -201,6 +204,9 @@ class Graph extends Component {
     })
     if (typeof this.props.onDurationUnitChange === 'function') {
       this.props.onDurationUnitChange(value)
+    }
+    if (typeof this.props.onAutoconfigChange === 'function') {
+      this.props.onAutoconfigChange('custom')
     }
   }
 
@@ -223,34 +229,55 @@ class Graph extends Component {
       let datesCopy = Array.from(dates)
       datesCopy[j] = date
       datesCopy = datesCopy.sort((a, b) => a.getTime() - b.getTime())
+      if (typeof this.props.onDatesChange === 'function') {
+        this.props.onDatesChange(datesCopy)
+      }
       return { 
         dates: datesCopy,
         autoConfig: null
       }
     })
+    if (typeof this.props.onAutoconfigChange === 'function') {
+      this.props.onAutoconfigChange('custom')
+    }
   }
 
   handleAddDate() {
     this.setState(({dates, durationAmount, durationUnit}) => {
       let datesCopy = Array.from(dates)
-      datesCopy.unshift(new Date(strtotime(`-${durationAmount} ${durationUnit}`, dates[0].getTime() / 1000) * 1000))
+      datesCopy.unshift(new Date(strtotime(`-${durationAmount} ${durationUnit}`, (dates[0] || new Date()).getTime() / 1000) * 1000))
+      if (typeof this.props.onDatesChange === 'function') {
+        this.props.onDatesChange(datesCopy)
+      }
       return {
         autoConfig: null,
         dates: datesCopy
       }
     })
+    if (typeof this.props.onAutoconfigChange === 'function') {
+      this.props.onAutoconfigChange('custom')
+    }
   }
 
   handleDeleteDate(j) {
-    this.setState(state => state.dates.length > 1 
-      ? {
-        autoConfig: null,
-        dates: state.dates.filter((_, i) => i !== j)
+    this.setState(state => {
+      const remainingDates = state.dates.length > 1 
+        ? state.dates.filter((_, i) => i !== j)
+        : [ new Date(strtotime(`-${state.durationAmount} ${state.durationUnit}`) * 1000) ]
+
+      if (typeof this.props.onDatesChange === 'function') {
+        this.props.onDatesChange(remainingDates)
       }
-      : {
+
+      return {
         autoConfig: null,
-        dates: [ new Date(strtotime(`-${state.durationAmount} ${state.durationUnit}`) * 1000) ]
-      })
+        dates: remainingDates
+      }
+    })
+
+    if (typeof this.props.onAutoconfigChange === 'function') {
+      this.props.onAutoconfigChange('custom')
+    }
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {

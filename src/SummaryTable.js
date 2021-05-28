@@ -56,9 +56,11 @@ export const SummaryTable = ({
         <TableCell>
           Série
         </TableCell>
-        <TableCell>
-          Total sur la période
-        </TableCell>
+        {graphStack && dimensionsTypesAreHomogenes
+          ? <TableCell>
+            Total sur la période
+          </TableCell>
+          : null}
         {reduction.length 
           ? Object.keys(reduction[0]).map((key, i) =>
             <TableCell key={key}>
@@ -130,25 +132,25 @@ export const SummaryTable = ({
               
             />}
         </TableCell>
-        <TableCell>
-          {graphStack && dimensionsTypesAreHomogenes
-            ? <Box style={{
-              whiteSpace: 'nowrap',
-              color: totalVariation !== null
-                ? totalVariation - 1 > 0
-                  ? 'green'
-                  : totalVariation - 1 < 0
-                    ? 'red'
+        {graphStack && dimensionsTypesAreHomogenes
+          ? <TableCell>
+              <Box style={{
+                  whiteSpace: 'nowrap',
+                  color: totalVariation !== null
+                    ? totalVariation - 1 > 0
+                      ? 'green'
+                      : totalVariation - 1 < 0
+                        ? 'red'
+                        : 'inherit'
                     : 'inherit'
-                : 'inherit'
-              }}>
-              {formatSerieValue(dimensions[Object.keys(_dimensions)[0]], total)}
-              {totalVariation !== null 
-                ? <Box component="span" style={{marginLeft:'1em'}}>(<VariationValue value={totalVariation - 1}/> )</Box>
-                : null}
-            </Box>
-            : null }
-        </TableCell>
+                  }}>
+                  {formatSerieValue(dimensions[Object.keys(_dimensions)[0]], total)}
+                  {totalVariation !== null 
+                    ? <Box component="span" style={{marginLeft:'1em'}}>(<VariationValue value={totalVariation - 1}/> )</Box>
+                    : null}
+                </Box>
+            </TableCell>
+          : null }
         {Object.keys(_dimensions).map(key => 
           <TableCell 
             key={`${i}-${key}`} 
