@@ -112,15 +112,15 @@ class Graph extends Component {
     super(props);
     const { autoConfigs, defaultConfig, defaultGranularity, defaultDurationUnit, defaultDurationAmount, defaultKeys, defaultGraphType, defaultGraphStack, defaultGraphView, defaultDates } = this.props
     this.state = {
-      granularity: defaultGranularity || (autoConfigs[defaultConfig].granularity ? autoConfigs[defaultConfig].granularity : 'day'),
+      granularity: defaultGranularity || (autoConfigs[defaultConfig]?.granularity ? autoConfigs[defaultConfig].granularity : 'day'),
       graphType: defaultGraphType || 'line',
       graphView: defaultGraphView || 'value',
       graphStack: defaultGraphStack !== undefined && defaultGraphStack !== null ? defaultGraphStack : false,
       keys: defaultKeys || [],
       dimensions: {},
       autoConfig: defaultConfig === 'custom' ? null : defaultConfig,
-      durationUnit: defaultDurationUnit || autoConfigs[defaultConfig].durationUnit,
-      durationAmount: defaultDurationAmount || autoConfigs[defaultConfig].durationAmount,
+      durationUnit: defaultDurationUnit || autoConfigs[defaultConfig]?.durationUnit,
+      durationAmount: defaultDurationAmount || autoConfigs[defaultConfig]?.durationAmount,
       dates: defaultDates || autoConfigs[defaultConfig]?.dates() || []
     }
     logger.log('V: init')
