@@ -33,7 +33,7 @@ import frLocale from "date-fns/locale/fr"
 import { gql } from '@apollo/client'
 import { graphql } from '@apollo/client/react/hoc'
 
-import { withStyles } from '@material-ui/core/styles'
+import { withStyles } from '@material-ui/styles'
 import ggChartColors from './ChartColors'
 
 import loggerGenerator from './utils/logger'

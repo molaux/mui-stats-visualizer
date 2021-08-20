@@ -1,6 +1,6 @@
 import React, { memo, useRef } from 'react'
 import isEqual from "react-fast-compare"
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/styles'
 
 import {
   ResponsiveContainer,

@@ -9,7 +9,7 @@ import Typography from '@material-ui/core/Typography'
 
 import { formatSerieValue, Share, Variation } from './DataRepresentation'
 import { resolveObjectKeyChain } from './utils/data'
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/styles'
 const useStyles = makeStyles((theme) => ({
   tooltip: ({isPopup}) =>  ({
     backgroundColor: isPopup ? 'rgba(255,255,255,0.95)' : 'transparent',

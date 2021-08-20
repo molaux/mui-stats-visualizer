@@ -15,7 +15,7 @@ import {
   DatePicker
 } from '@material-ui/lab'
 
-import { withStyles, MuiThemeProvider } from '@material-ui/core/styles'
+import { withStyles, MuiThemeProvider } from '@material-ui/styles'
 import { createMuiTheme } from '@material-ui/core'
 
 const darkTheme = createMuiTheme({
