@@ -12,7 +12,7 @@
     "deepmerge": "^4.2.2",
     "locutus": "^2.0.15",
     "pluralize-fr": "^1.0.1",
-    "react-fast-compare": "^3.2.0",
+    "react-fast-compare": "^3.2.0"
   },
   "peerDependencies": {
     "@apollo/client": "^3.3.16",
