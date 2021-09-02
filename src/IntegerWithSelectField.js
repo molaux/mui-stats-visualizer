@@ -1,37 +1,49 @@
 import React from 'react'
-import Box from '@material-ui/core/Box'
-import TextField from '@material-ui/core/TextField'
-import Select from '@material-ui/core/Select'
-import MenuItem from '@material-ui/core/MenuItem'
+import {
+  Box,
+  TextField,
+  Select,
+  MenuItem,
+  IconButton
+} from '@material-ui/core'
+
+import {
+  KeyboardArrowDown as DownIcon,
+  KeyboardArrowUp as UpIcon
+} from '@material-ui/icons'
+
 import { makeStyles } from '@material-ui/styles'
 import { alpha } from '@material-ui/core/styles'
-
-import IconButton from '@material-ui/core/IconButton'
-import DownIcon from '@material-ui/icons/KeyboardArrowDown'
-import UpIcon from '@material-ui/icons/KeyboardArrowUp'
 
 import plural from 'pluralize-fr'
 
 const useStyles = makeStyles((theme) => ({
   numberFieldContainer: {
+    display: 'inline-flex',
+    alignItems: 'stretch',
+    overflow: 'hidden',
     borderRadius: theme.shape.borderRadius,
+    boxSizing: 'border-box',
     border: '1px solid ' + alpha(theme.palette.action.active, 0.12),
     '& .MuiInput-underline:before, & .MuiInput-underline:after, & .MuiInput-underline:hover:before, & .MuiInput-underline:hover:after': {
       borderBottom: 0
     },
     '& button': {
       borderRadius: 0,
-      paddingTop: 7,
-      paddingBottom: 7,
-      color: alpha(theme.palette.action.active, 0.38)
+      // paddingTop: 8,
+      // paddingBottom: 7,
+      color: alpha(theme.palette.action.active, 0.38),
+      '&:active, &:hover': {
+        backgroundColor: alpha(theme.palette.action.active, 0.12)
+      }
     }
   },
   numberField: {
     '& input[type=number]': {
       textAlign: 'right',
       paddingRight: theme.spacing(2),
-      paddingBottom: 7,
-      paddingTop: 8,
+      // paddingBottom: 7,
+      paddingTop: 7,
       borderBottom: 0,
       width: '3em',
       '-webkit-appearance': 'textfield',
@@ -40,41 +52,31 @@ const useStyles = makeStyles((theme) => ({
       '&::-webkit-inner-spin-button,&::-webkit-outer-spin-button': { 
         '-webkit-appearance': 'none'
       }
+    },
+    '& fieldset': {
+      border: 0
     }
   },
   selectButton: {
-    borderLeftWidth: '1px',
+    borderLeftWidth: 1,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
     borderLeftStyle: 'solid',
     borderLeftColor: alpha(theme.palette.action.active, 0.12),
     backgroundColor: alpha(theme.palette.action.active, 0.06),
     color: theme.palette.action.active,
     borderRadius: `0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0!important`,
-    '& .MuiSelect-root': {
-      paddingTop: 8,
-      paddingBottom: 7,
-      paddingLeft: theme.spacing(2), 
+    '&:hover, &:active': {
+      backgroundColor: alpha(theme.palette.action.active, 0.12),
+      color: theme.palette.action.active,
     },
-    '&:before': {
-      borderBottom: 0
+    '& fieldset': {
+      border: 0
     },
-    '&:after': {
-      borderBottom: 0
-    },
-    '&:active': {
-      borderBottom: 0
-    },
-    '&:hover:before': {
-      borderBottom: '0!important'
-    },
-    '&:hover:after': {
-      borderBottom: '0!important'
-    },
-    '&:active:before': {
-      borderBottom: '0!important'
-    },
-    '&:active:after': {
-      borderBottom: '0!important'
-    },
+    '& .MuiSelect-select': {
+      paddingTop: 7
+    }
   },
 }))
 
@@ -102,6 +104,7 @@ export const IntegerWithSelectField = ({onIntegerValueChange, integerValue, minI
                 : minIntegerValue)
               : null
           }}
+        size="small"
         type="number"
         InputLabelProps={{
           shrink: true
@@ -121,6 +124,7 @@ export const IntegerWithSelectField = ({onIntegerValueChange, integerValue, minI
         value={selectValue}
         onChange={(e) => e.target.value && typeof onSelectValueChange === 'function' ? onSelectValueChange(e.target.value) : null}
         className={classes.selectButton}
+        size="small"
       >
         {selectValues.map(([key, label]) => 
           <MenuItem key={key} value={key}>{integerValue > 1 ? plural(label) : label}</MenuItem>
