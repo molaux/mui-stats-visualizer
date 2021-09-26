@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import SvgIcon from '@material-ui/core/SvgIcon'
+import SvgIcon from '@mui/material/SvgIcon'
 const r = 11
 const center = { x: 12, y: 12 }
 const SVG_EPSILON = 0.000001

@@ -36,7 +36,7 @@ module.exports = {
       'locutus': 'locutus',
       'recharts': 'recharts'
     },
-    /@material-ui\/.*/,
+    /@mui\/.*/,
     /date-fns\/.*/
   ]
 };

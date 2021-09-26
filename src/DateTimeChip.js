@@ -1,22 +1,22 @@
 import React from 'react'
 
-import DateIcon from '@material-ui/icons/Timeline'
-import DeleteIcon from '@material-ui/icons/Cancel'
-import KeyboardArrowLeft from '@material-ui/icons/KeyboardArrowLeft'
-import KeyboardArrowRight from '@material-ui/icons/KeyboardArrowRight'
-import AccessTime from '@material-ui/icons/AccessTime'
-import DateRange from '@material-ui/icons/DateRange'
-import Chip from '@material-ui/core/Chip'
-import TextField from '@material-ui/core/TextField'
-import AddIcon from '@material-ui/icons/Add'
+import DateIcon from '@mui/icons-material/Timeline'
+import DeleteIcon from '@mui/icons-material/Cancel'
+import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft'
+import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight'
+import AccessTime from '@mui/icons-material/AccessTime'
+import DateRange from '@mui/icons-material/DateRange'
+import Chip from '@mui/material/Chip'
+import TextField from '@mui/material/TextField'
+import AddIcon from '@mui/icons-material/Add'
 
 import {
   DateTimePicker,
   DatePicker
-} from '@material-ui/lab'
+} from '@mui/lab'
 
-import { withStyles, MuiThemeProvider } from '@material-ui/styles'
-import { createMuiTheme } from '@material-ui/core'
+import { withStyles, MuiThemeProvider } from '@mui/styles'
+import { createMuiTheme } from '@mui/material'
 
 const darkTheme = createMuiTheme({
   palette: {

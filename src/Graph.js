@@ -4,28 +4,28 @@ import { Route, withRouter } from 'react-router-dom'
 import { DataViz } from './DataViz'
 
 import strtotime from 'locutus/php/datetime/strtotime'
-import FormControl from '@material-ui/core/FormControl'
-import FormLabel from '@material-ui/core/FormLabel'
-import Input from '@material-ui/core/Input'
-import MenuItem from '@material-ui/core/MenuItem'
-import Select from '@material-ui/core/Select'
-import Chip from '@material-ui/core/Chip'
+import FormControl from '@mui/material/FormControl'
+import FormLabel from '@mui/material/FormLabel'
+import Input from '@mui/material/Input'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
+import Chip from '@mui/material/Chip'
 
-import useMediaQuery from '@material-ui/core/useMediaQuery'
+import useMediaQuery from '@mui/material/useMediaQuery'
 
 import Color from 'color'
 
-import { LocalizationProvider } from '@material-ui/lab'
+import { LocalizationProvider } from '@mui/lab'
 
-import Divider from '@material-ui/core/Divider'
+import Divider from '@mui/material/Divider'
 
 import TableSelect from './TableSelect'
 
-import HourIcon from '@material-ui/icons/AccessTime'
-import DayIcon from '@material-ui/icons/ViewDay'
-import WeekIcon from '@material-ui/icons/ViewWeek'
-import MonthIcon from '@material-ui/icons/CalendarToday'
-import YearIcon from '@material-ui/icons/ViewArray'
+import HourIcon from '@mui/icons-material/AccessTime'
+import DayIcon from '@mui/icons-material/ViewDay'
+import WeekIcon from '@mui/icons-material/ViewWeek'
+import MonthIcon from '@mui/icons-material/CalendarToday'
+import YearIcon from '@mui/icons-material/ViewArray'
 
 import DateFnsUtils from '@date-io/date-fns'
 import frLocale from "date-fns/locale/fr"
@@ -33,7 +33,7 @@ import frLocale from "date-fns/locale/fr"
 import { gql } from '@apollo/client'
 import { graphql } from '@apollo/client/react/hoc'
 
-import { withStyles } from '@material-ui/styles'
+import { withStyles } from '@mui/styles'
 import ggChartColors from './ChartColors'
 
 import loggerGenerator from './utils/logger'

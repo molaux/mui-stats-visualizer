@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react'
 
-import Box from '@material-ui/core/Box'
+import Box from '@mui/material/Box'
 
-import ToggleButton from '@material-ui/core/ToggleButton'
-import ToggleButtonGroup from '@material-ui/core/ToggleButtonGroup'
-import Toolbar from '@material-ui/core/Toolbar'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Toolbar from '@mui/material/Toolbar'
 
-import BarChartIcon from '@material-ui/icons/BarChart'
-import LineChartIcon from '@material-ui/icons/ShowChart'
-import ShareChartIcon from '@material-ui/icons/ViewWeek'
-import ValueChartIcon from '@material-ui/icons/Equalizer'
-import StackedLineChartIcon from '@material-ui/icons/StackedLineChart'
+import BarChartIcon from '@mui/icons-material/BarChart'
+import LineChartIcon from '@mui/icons-material/ShowChart'
+import ShareChartIcon from '@mui/icons-material/ViewWeek'
+import ValueChartIcon from '@mui/icons-material/Equalizer'
+import StackedLineChartIcon from '@mui/icons-material/StackedLineChart'
 
-import { useTheme } from '@material-ui/core/styles'
+import { useTheme } from '@mui/material/styles'
 
 import { format } from 'date-fns'
 import frLocale from "date-fns/locale/fr"

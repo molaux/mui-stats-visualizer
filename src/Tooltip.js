@@ -2,14 +2,14 @@
 import React from 'react'
 
 import Table from './TableResponsive'
-import TableBody from '@material-ui/core/TableBody'
-import TableCell from '@material-ui/core/TableCell'
-import TableRow from '@material-ui/core/TableRow'
-import Typography from '@material-ui/core/Typography'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableRow from '@mui/material/TableRow'
+import Typography from '@mui/material/Typography'
 
 import { formatSerieValue, Share, Variation } from './DataRepresentation'
 import { resolveObjectKeyChain } from './utils/data'
-import { makeStyles } from '@material-ui/styles'
+import { makeStyles } from '@mui/styles'
 const useStyles = makeStyles((theme) => ({
   tooltip: ({isPopup}) =>  ({
     backgroundColor: isPopup ? 'rgba(255,255,255,0.95)' : 'transparent',

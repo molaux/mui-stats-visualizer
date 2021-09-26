@@ -1,26 +1,26 @@
 import React from 'react'
-import { makeStyles } from '@material-ui/styles'
+import { makeStyles } from '@mui/styles'
 
-import TextField from '@material-ui/core/TextField'
-import AddIcon from '@material-ui/icons/Add'
-import IconButton from '@material-ui/core/IconButton'
-import DeleteIcon from '@material-ui/icons/Delete'
-import KeyboardArrowLeftIcon from '@material-ui/icons/KeyboardArrowLeft'
-import KeyboardArrowRightIcon from '@material-ui/icons/KeyboardArrowRight'
-import AccessTimeIcon from '@material-ui/icons/AccessTime'
-import DateRangeIcon from '@material-ui/icons/DateRange'
-import Box from '@material-ui/core/Box'
+import TextField from '@mui/material/TextField'
+import AddIcon from '@mui/icons-material/Add'
+import IconButton from '@mui/material/IconButton'
+import DeleteIcon from '@mui/icons-material/Delete'
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft'
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import DateRangeIcon from '@mui/icons-material/DateRange'
+import Box from '@mui/material/Box'
 
 import Table from './TableResponsive'
-import TableBody from '@material-ui/core/TableBody'
-import TableCell from '@material-ui/core/TableCell'
-import TableRow from '@material-ui/core/TableRow'
-import TableHead from '@material-ui/core/TableHead'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableRow from '@mui/material/TableRow'
+import TableHead from '@mui/material/TableHead'
 import { VariationValue, ShareValue, formatSerieValue } from './DataRepresentation'
 
 import {
   DateTimePicker,
-  DatePicker } from '@material-ui/lab'
+  DatePicker } from '@mui/lab'
 
 import plural from 'pluralize-fr'
 

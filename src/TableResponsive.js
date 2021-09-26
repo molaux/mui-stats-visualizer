@@ -1,6 +1,6 @@
 import React from 'react';
-import Table from '@material-ui/core/Table';
-import { withStyles } from '@material-ui/styles';
+import Table from '@mui/material/Table';
+import { withStyles } from '@mui/styles';
 const styles = theme => ({
   root: {
     width: '100%',

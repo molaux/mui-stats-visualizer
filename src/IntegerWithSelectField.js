@@ -5,15 +5,15 @@ import {
   Select,
   MenuItem,
   IconButton
-} from '@material-ui/core'
+} from '@mui/material'
 
 import {
   KeyboardArrowDown as DownIcon,
   KeyboardArrowUp as UpIcon
-} from '@material-ui/icons'
+} from '@mui/icons-material'
 
-import { makeStyles } from '@material-ui/styles'
-import { alpha } from '@material-ui/core/styles'
+import { makeStyles } from '@mui/styles'
+import { alpha } from '@mui/material/styles'
 
 import plural from 'pluralize-fr'
 
