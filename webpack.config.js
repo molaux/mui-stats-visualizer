@@ -1,15 +1,19 @@
 var path = require('path');
 module.exports = {
   entry: './src/index.js',
+  devtool: 'cheap-source-map',
   output: {
     path: path.resolve(__dirname, 'build'),
     filename: 'index.js',
     libraryTarget: 'commonjs2'
   },
+  resolve: {
+    extensions: ['.js', '.jsx']
+  },
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.jsx?$/,
         include: path.resolve(__dirname, 'src'),
         exclude: /(node_modules|bower_components|build)/,
         use: {
@@ -38,5 +42,8 @@ module.exports = {
     },
     /@mui\/.*/,
     /date-fns\/.*/
-  ]
+  ],
+  optimization: {
+    nodeEnv: false
+  }
 };
