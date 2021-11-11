@@ -175,7 +175,7 @@ class TableSelect extends PureComponent {
   }
 
   getSubDimKeys(subDim) {
-    return this.state.filteredGroups.map(groupKey => this.state.groups[groupKey].dimensions[subDim].key)
+    return this.state.filteredGroups.map(groupKey => this.state.groups[groupKey].dimensions?.[subDim].key)
   }
 
   filterKeysFromGroup(groupKey, values) {
