@@ -55,7 +55,8 @@ const RowGroup = React.memo(({
         <Checkbox
           onChange={event => onChange(group.dimensions[subDim].key, event)}
           value={group.dimensions[subDim].key}
-          checked={value.indexOf(group.dimensions[subDim].key) !== -1} />
+          checked={value.indexOf(group.dimensions[subDim].key) !== -1}
+          disabled={group.dimensions[subDim].key === null} />
       </TableCell>
       )
       : <TableCell  colSpan={50}>
@@ -74,7 +75,7 @@ const RowGroup = React.memo(({
               <MenuItem 
                 key={group.dimensions[subDim].key}
                 value={group.dimensions[subDim].key}>
-                <Checkbox checked={value.indexOf(group.dimensions[subDim].key) !== -1} />
+                <Checkbox checked={value.indexOf(group.dimensions[subDim].key) !== -1} disabled={group.dimensions[subDim].key === null} />
                 <ListItemText primary={subDim} />
               </MenuItem>
             ))}
@@ -147,6 +148,7 @@ class TableSelect extends PureComponent {
 
   static getDerivedStateFromProps(props, state) {
     if (Object.keys(props.dimensions).length !== Object.keys(state.dimensions).length) {
+      const dimensionsSet = new Set()
       const groups =  Object.keys(props.dimensions).reduce((groups, dimensionKey) => {
         if (! (props.dimensions[dimensionKey].group.key in groups)) {
           groups[props.dimensions[dimensionKey].group.key] = {
@@ -159,8 +161,20 @@ class TableSelect extends PureComponent {
           key: dimensionKey,
           dimension: props.dimensions[dimensionKey]
         }
+        dimensionsSet.add(props.dimensions[dimensionKey].group.dimension)
         return groups
       }, {})
+
+      for (const group of Object.values(groups)) {
+        const groupDimensionsSet = new Set(Object.keys(group.dimensions))
+        const missingDimensions = [...dimensionsSet].filter((d) => !groupDimensionsSet.has(d))
+        for (const missingDimension of missingDimensions) {
+          group.dimensions[missingDimension] = {
+            key: null,
+            dimension: null
+          }
+        }
+      }
 
       return {
         dimensions: props.dimensions,
@@ -275,6 +289,7 @@ class TableSelect extends PureComponent {
                 onChange={this.handleFilterChange.bind(this)}
                 className={classes.textField}
                 margin="normal"
+                variant="standard"
               />
             </TableCell>
             <TableCell colSpan={dimensionsGroupsComponent === 'expanded'
@@ -289,22 +304,23 @@ class TableSelect extends PureComponent {
                   value={depthFilter}
                   onChange={this.handleChangeDepthFilter.bind(this)}
                   displayEmpty
+                  variant="standard"
                   inputProps={{
                     name: 'Type'
                   }}
                 >
                   <MenuItem value="">Toutes</MenuItem>
-                  <MenuItem value={1}>Catégories</MenuItem>
-                  <MenuItem value={2}>Sous-catégories</MenuItem>
+                  <MenuItem value={1}>Rayons</MenuItem>
+                  <MenuItem value={2}>Familles</MenuItem>
                 </Select>
               </FormControl>
             </TableCell>
             <TablePagination
               count={Object.keys(filteredGroups).length}
-              onChangePage={this.handleChangePage.bind(this)}
+              onPageChange={this.handleChangePage.bind(this)}
               page={currentPage}
               rowsPerPage={perPage}
-              onChangeRowsPerPage={this.handleChangeRowsPerPage.bind(this)}
+              onRowsPerPageChange={this.handleChangeRowsPerPage.bind(this)}
               />
           </TableRow>
           <TableRow>

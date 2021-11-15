@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, forwardRef } from 'react'
 
-import Box from '@mui/material/Box'
-
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Toolbar from '@mui/material/Toolbar'
+import {
+  Box,
+  ToggleButtonGroup,
+  Typography,
+  ToggleButton
+} from '@mui/material'
+import Tooltip, { tooltipClasses } from '@mui/material/Tooltip'
 
 import BarChartIcon from '@mui/icons-material/BarChart'
 import LineChartIcon from '@mui/icons-material/ShowChart'
@@ -12,7 +15,7 @@ import ShareChartIcon from '@mui/icons-material/ViewWeek'
 import ValueChartIcon from '@mui/icons-material/Equalizer'
 import StackedLineChartIcon from '@mui/icons-material/StackedLineChart'
 
-import { useTheme } from '@mui/material/styles'
+import { useTheme, styled } from '@mui/material/styles'
 
 import { format } from 'date-fns'
 import frLocale from "date-fns/locale/fr"
@@ -26,10 +29,23 @@ const logger = loggerGenerator('error')
 import { resolveObjectKeyChain } from './utils/data'
 
 import { IntegerWithSelectField } from './IntegerWithSelectField'
+import { IntegerField } from './IntegerField'
 import { SummaryTable } from './SummaryTable'
 
 import { Tooltip as CustomTooltip } from './Tooltip'
 import { Chart } from './Chart'
+
+const HtmlTooltip = styled(({ className, ...props }) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))(({ theme }) => ({
+  [`& .${tooltipClasses.tooltip}`]: {
+    backgroundColor: '#f5f5f9',
+    color: 'rgba(0, 0, 0, 0.87)',
+    maxWidth: 220,
+    fontSize: theme.typography.pxToRem(12),
+    border: '1px solid #dadde9',
+  },
+}))
 
 export const DataViz = ({
   dimensions,
@@ -38,6 +54,8 @@ export const DataViz = ({
   timeAggregations,
   durationAmount,
   onDurationAmountChange,
+  movingWindowSize,
+  onMovingWindowSizeChange,
   durationUnit,
   onDurationUnitChange,
   granularity,
@@ -185,14 +203,18 @@ export const DataViz = ({
     </div>
 
     <Toolbar variant="dense" className={classes.toolbar}>
-      <IntegerWithSelectField
-        integerValue={durationAmount}
-        onIntegerValueChange={onDurationAmountChange}
-        selectValue={durationUnit}
-        onSelectValueChange={onDurationUnitChange}
-        selectValues={Object.keys(timeAggregations).map(taKey => [taKey, timeAggregations[taKey].value])}
-        minIntegerValue={minDurationAmount === undefined ? 1 : minDurationAmount} maxIntegerValue={maxDurationAmount}
-        />
+      <Tooltip
+        title="Durée totale des séries"
+      >
+        <IntegerWithSelectField
+          integerValue={durationAmount}
+          onIntegerValueChange={onDurationAmountChange}
+          selectValue={durationUnit}
+          onSelectValueChange={onDurationUnitChange}
+          selectValues={Object.keys(timeAggregations).map(taKey => [taKey, timeAggregations[taKey].value])}
+          minIntegerValue={minDurationAmount === undefined ? 1 : minDurationAmount} maxIntegerValue={maxDurationAmount}
+          />
+      </Tooltip>
       <ToggleButtonGroup
         size="small" 
         value={granularity}
@@ -207,6 +229,18 @@ export const DataViz = ({
           </ToggleButton>
         })}
       </ToggleButtonGroup>
+      
+      <Tooltip
+        title={`Étudier une fenêtre glissante de ${movingWindowSize} ${timeAggregations[granularity].value.toLowerCase()}${movingWindowSize > 1 && timeAggregations[granularity].value.toLowerCase().slice(-1) !== 's' ? 's' : ''}`}
+      >
+        <IntegerField
+          integerValue={movingWindowSize}
+          onIntegerValueChange={onMovingWindowSizeChange}
+          minIntegerValue={1}
+          maxIntegerValue={10000}
+          />
+      </Tooltip>
+
       <ToggleButtonGroup
         size="small"
         value={representationMode}

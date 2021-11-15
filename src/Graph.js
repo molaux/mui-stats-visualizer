@@ -102,16 +102,17 @@ const styles = theme => ({
 })
 
 const STATS_QUERY = gql`
-  query Statistics($granularity: String!, $duration: String!, $series: [DimensionType!]) {
-    statistics(granularity: $granularity, duration: $duration, series: $series)
+  query Statistics($granularity: String!, $movingWindowSize: Int! $duration: String!, $series: [DimensionType!]) {
+    statistics(granularity: $granularity, movingWindowSize: $movingWindowSize, duration: $duration, series: $series)
   }
 `
 
 class Graph extends Component {
   constructor(props) {
     super(props);
-    const { autoConfigs, defaultConfig, defaultGranularity, defaultDurationUnit, defaultDurationAmount, defaultKeys, defaultGraphType, defaultGraphStack, defaultGraphView, defaultDates } = this.props
+    const { autoConfigs, defaultConfig, defaultGranularity, defaultDurationUnit, defaultDurationAmount, defaultKeys, defaultGraphType, defaultGraphStack, defaultGraphView, defaultDates, defaultMovingWindowSize } = this.props
     this.state = {
+      movingWindowSize: defaultMovingWindowSize || (autoConfigs[defaultConfig]?.movingWindowSize ? autoConfigs[defaultConfig].movingWindowSize : 1),
       granularity: defaultGranularity || (autoConfigs[defaultConfig]?.granularity ? autoConfigs[defaultConfig].granularity : 'day'),
       graphType: defaultGraphType || 'line',
       graphView: defaultGraphView || 'value',
@@ -182,6 +183,21 @@ class Graph extends Component {
     }
   }
 
+  handleChangeMovingWindowSize(value) {
+    if (value !== '' && !isNaN(parseInt(value, 10))) {
+      this.setState({
+        autoConfig: null,
+        movingWindowSize: parseInt(value, 10)
+      })
+      if (typeof this.props.onMovingWindowSizeChange === 'function') {
+        this.props.onMovingWindowSizeChange(parseInt(value, 10))
+      }
+      if (typeof this.props.onAutoconfigChange === 'function') {
+        this.props.onAutoconfigChange('custom')
+      }
+    }
+  }
+
   handleChangeDurationAmount (value) {
     if (value !== '' && !isNaN(parseInt(value, 10))) {
       this.setState({
@@ -216,6 +232,7 @@ class Graph extends Component {
       granularity:  autoConfigs[event.target.value].granularity,
       durationUnit: autoConfigs[event.target.value].durationUnit,
       durationAmount: autoConfigs[event.target.value].durationAmount,
+      movingWindowSize: autoConfigs[event.target.value].movingWindowSize,
       dates: autoConfigs[event.target.value].dates(),
       autoConfig: event.target.value
     })
@@ -280,11 +297,19 @@ class Graph extends Component {
     }
   }
 
+  encodeState() {
+    return encodeURIComponent(JSON.stringify(this.state).replace('%', '_percent_'))
+  }
+
+  decodeState(coded) {
+    return JSON.parse(decodeURIComponent(coded).replace('_percent_', '%'))
+  }
+
   componentDidUpdate(prevProps, prevState, snapshot) {
     logger.log('V: did update')
     if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-      logger.log('V: pushing new url', `${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
-      this.props.history.push(`${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
+      logger.log('V: pushing new url', `${this.props.prefixPath}/${this.encodeState()}`)
+      this.props.history.push(`${this.props.prefixPath}/${this.encodeState()}`)
     }
   }
 
@@ -304,7 +329,8 @@ class Graph extends Component {
     logger.log('V: gdsfp - ', state.keys.length === 0)
     return {
         ...state,
-        keys: state.keys.length === 0 ? Object.keys(props.dimensions).slice(0, 1) : state.keys,
+        // keys: Object.keys(props.dimensions).slice(0, 1),
+        keys: (state.keys.length === 0 ? Object.keys(props.dimensions).slice(0, 1) : state.keys).filter((k) => k !== null),
       }
   }
 
@@ -314,7 +340,7 @@ class Graph extends Component {
     if (this.props.match && this.props.match.params.configuration) {
       logger.log('V: did mount with config')
 
-      urlConfiguration = JSON.parse(decodeURIComponent(this.props.match.params.configuration))
+      urlConfiguration = this.decodeState(this.props.match.params.configuration)
       if (Array.isArray(urlConfiguration.dates)) {
         urlConfiguration.dates = urlConfiguration.dates.map(strDate => new Date(strDate))
       }
@@ -323,8 +349,8 @@ class Graph extends Component {
         ...urlConfiguration
       }))
     } else {
-      logger.log('V: pushing new url', `${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
-      this.props.history.push(`${this.props.prefixPath}/${encodeURIComponent(JSON.stringify(this.state))}`)
+      logger.log('V: pushing new url', `${this.props.prefixPath}/${this.encodeState()}`)
+      this.props.history.push(`${this.props.prefixPath}/${this.encodeState()}`)
     }
   }
 
@@ -442,6 +468,8 @@ class Graph extends Component {
         colors={colors}
         granularity={this.state.granularity}
         onGranularityChange={this.handleChangeGranularity.bind(this)}
+        movingWindowSize={this.state.movingWindowSize}
+        onMovingWindowSizeChange={this.handleChangeMovingWindowSize.bind(this)}
         durationAmount={this.state.durationAmount}
         onDurationAmountChange={this.handleChangeDurationAmount.bind(this)}
         durationUnit={this.state.durationUnit}
@@ -504,11 +532,12 @@ class Graph extends Component {
 }
 
 const GraphQLDataViz = graphql(STATS_QUERY, {
-    options: ({ granularity, durationAmount, durationUnit, series }) => ({
+    options: ({ granularity, movingWindowSize, durationAmount, durationUnit, series }) => ({
       variables: {
-        granularity: granularity,
+        granularity,
         duration: `${durationAmount} ${durationUnit}`,
-        series: series
+        movingWindowSize,
+        series
       }
     })
   })(DataViz)

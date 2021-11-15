@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 import {
   Box,
   TextField,
@@ -80,7 +80,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }))
 
-export const IntegerWithSelectField = ({onIntegerValueChange, integerValue, minIntegerValue, maxIntegerValue, onSelectValueChange, selectValue, selectValues}) => {
+export const IntegerWithSelectField = forwardRef(({ onIntegerValueChange, integerValue, minIntegerValue, maxIntegerValue, onSelectValueChange, selectValue, selectValues, ...props }, ref) => {
   const classes = useStyles()
   return <Box display="flex" alignItems="end" className={classes.numberFieldContainer}>
       <IconButton
@@ -93,6 +93,7 @@ export const IntegerWithSelectField = ({onIntegerValueChange, integerValue, minI
       </IconButton>
       <TextField
         id="duration-amount"
+        ref={ref}
         value={integerValue}
         onChange={(e) => {
             const value = parseInt(e.target.value, 10)
@@ -110,6 +111,7 @@ export const IntegerWithSelectField = ({onIntegerValueChange, integerValue, minI
           shrink: true
         }}
         classes={{root: classes.numberField}}
+        {...props}
       />
       <IconButton
         size="small"
@@ -131,4 +133,4 @@ export const IntegerWithSelectField = ({onIntegerValueChange, integerValue, minI
         )}
       </Select>
   </Box>
-}
+})
