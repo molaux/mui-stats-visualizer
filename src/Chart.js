@@ -71,6 +71,7 @@ export const Chart = memo(({
     : !graphStack
       ? [ LineChart, Line ]
       : [ AreaChart, Area ]
+
   return <div className={classes.paddedContent} ref={graphContainerRef}>
     <div className={classes.ratioContainer} >
       <div className={classes.fullContainer}>
@@ -91,9 +92,15 @@ export const Chart = memo(({
             >
             <YAxis
               tickFormatter={
-                x => Object.keys(dimensions).length && (dimensionsTypesAreHomogenes || representationMode === 'share')
-                  ? formatSerieValue(dimensions[Object.keys(dimensions)[0]], x, { type: representationMode === 'share' ? 'percent' : null })
-                  : x
+                x => Object.keys(dimensions).length &&
+                  (dimensionsTypesAreHomogenes || representationMode === 'share')
+                    ? formatSerieValue(dimensions[Object.keys(dimensions)[0]], x, {
+                      type: representationMode === 'share' ||
+                        dimensionsTypesAreHomogenes === 'percent'
+                          ? 'percent'
+                          : null
+                      })
+                  : x.toLocaleString('fr-FR', {style: 'decimal', maximumFractionDigits: 1})
               }
               domain={representationMode === 'share' ? [0,1] : null}
               />

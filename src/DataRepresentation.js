@@ -19,7 +19,7 @@ export const formatSerieValue = (dimension, value, options) => {
     case 'integer':
       return Math.round(value)
     default:
-      return value.toLocaleString('fr-FR', {style: 'decimal'})
+      return value.toLocaleString('fr-FR', {style: 'decimal', maximumFractionDigits: 1})
   }
 }
 
