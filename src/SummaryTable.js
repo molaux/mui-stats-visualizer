@@ -64,7 +64,9 @@ export const SummaryTable = ({
         {reduction.length 
           ? Object.keys(reduction[0]).map((key, i) =>
             <TableCell key={key}>
-              {dimensions[key].title}
+              {dimensions[key].group?.dimension
+              ? `${dimensions[key].group?.label} > `
+              : null}{dimensions[key].title}
             </TableCell>)
           : null}
       </TableRow>

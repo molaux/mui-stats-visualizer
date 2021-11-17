@@ -116,7 +116,9 @@ export const Tooltip = (dimensions, summize, onUpdate, dontShow) => ({ active, p
                             marginBottom: '-0.15em',
                             backgroundColor: point.stroke ? point.stroke : point.fill
                           }}></span>
-                          {dimensions[serieKey].title}
+                          {dimensions[serieKey].group?.dimension
+                            ? `${dimensions[serieKey].group?.label} > `
+                            : null}{dimensions[serieKey].title}
                         </TableCell>
                         <TableCell>
                           {formatSerieValue(dimensions[serieKey], point.value, {type: isShareRepresentation ? 'percent' : null})}
