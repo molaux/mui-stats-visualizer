@@ -298,11 +298,11 @@ class Graph extends Component {
   }
 
   encodeState() {
-    return encodeURIComponent(JSON.stringify(this.state).replace('%', '_percent_'))
+    return encodeURIComponent(JSON.stringify(this.state).replaceAll('%', '_percent_'))
   }
 
   decodeState(coded) {
-    return JSON.parse(decodeURIComponent(coded).replace('_percent_', '%'))
+    return JSON.parse(decodeURIComponent(coded).replaceAll('_percent_', '%'))
   }
 
   componentDidUpdate(prevProps, prevState, snapshot) {

@@ -1,6 +1,6 @@
 {
   "name": "@molaux/mui-stats-visualizer",
-  "version": "2.2.9",
+  "version": "2.2.10",
   "description": "A macro component that configures, fetches and display stats data",
   "main": "build/index.js",
   "scripts": {
