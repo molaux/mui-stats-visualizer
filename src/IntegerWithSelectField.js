@@ -7,10 +7,8 @@ import {
   IconButton
 } from '@mui/material'
 
-import {
-  KeyboardArrowDown as DownIcon,
-  KeyboardArrowUp as UpIcon
-} from '@mui/icons-material'
+import DownIcon from '@mui/icons-material/KeyboardArrowDown'
+import UpIcon from '@mui/icons-material/KeyboardArrowUp'
 
 import { makeStyles } from '@mui/styles'
 import { alpha } from '@mui/material/styles'

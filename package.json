@@ -1,6 +1,6 @@
 {
   "name": "@molaux/mui-stats-visualizer",
-  "version": "2.2.10",
+  "version": "2.2.11",
   "description": "A macro component that configures, fetches and display stats data",
   "main": "build/index.js",
   "scripts": {
@@ -46,5 +46,6 @@
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "webpack": "^5.54",
     "webpack-cli": "^4.8.0"
-  }
+  },
+  "sideEffects": false
 }
