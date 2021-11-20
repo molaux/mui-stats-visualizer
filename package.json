@@ -1,6 +1,6 @@
 {
   "name": "@molaux/mui-stats-visualizer",
-  "version": "2.2.11",
+  "version": "2.2.12",
   "description": "A macro component that configures, fetches and display stats data",
   "main": "build/index.js",
   "scripts": {
@@ -17,10 +17,10 @@
   "peerDependencies": {
     "@apollo/client": "^3.4.8",
     "@date-io/date-fns": "^2.11.0",
-    "@mui/material": "^5.0.1",
-    "@mui/icons-material-material-material": "^5.0.1",
-    "@mui/lab": "^5.0.0-alpha.48",
-    "@mui/styles": "^5.0.1",
+    "@mui/material": "^5.1.1",
+    "@mui/icons-material": "^5.1.1",
+    "@mui/lab": "^5.0.0-alpha.55",
+    "@mui/styles": "^5.1.1",
     "graphql": "^15.5.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
@@ -37,13 +37,14 @@
   "author": "Marc-Olivier Laux <marc-olivier@matlaux.net>",
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.14.8",
-    "@babel/core": "^7.15.0",
-    "@babel/plugin-proposal-class-properties": "^7.14.5",
-    "@babel/plugin-transform-react-jsx": "^7.14.9",
-    "@babel/preset-env": "^7.15.0",
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
+    "@babel/plugin-proposal-class-properties": "^7.12.1",
+    "@babel/plugin-transform-react-jsx": "^7.12.12",
+    "@babel/preset-env": "^7.16.4",
+    "@babel/preset-react": "^7.16.0",
     "babel-loader": "^8.2.2",
-    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-plugin-transform-object-rest-spread": "^7.0.0-beta.3",
     "webpack": "^5.54",
     "webpack-cli": "^4.8.0"
   },

@@ -19,7 +19,22 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env']
+            presets: [
+              ["@babel/preset-env", {
+                targets: {
+                  browsers: ['last 2 versions, not dead'],
+                  // esmodules: true
+                },
+                modules: false
+              }]
+            ],
+            plugins: [
+              "transform-object-rest-spread",
+              "@babel/transform-react-jsx",
+              ["@babel/plugin-proposal-class-properties", { "loose": true }],
+              ["@babel/plugin-proposal-private-methods", { "loose": true }],
+              ["@babel/plugin-proposal-private-property-in-object", { "loose": true }]
+            ]
           }
         }
       }
