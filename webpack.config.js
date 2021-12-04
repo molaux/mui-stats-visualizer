@@ -53,7 +53,8 @@ module.exports = {
       'recharts': 'recharts',
       'deepmerge': 'deepmerge',
       'locutus': 'locutus',
-      'recharts': 'recharts'
+      'recharts': 'recharts',
+      '@molaux/mui-utils': '@molaux/mui-utils'
     },
     /@mui\/.*/,
     /date-fns\/.*/

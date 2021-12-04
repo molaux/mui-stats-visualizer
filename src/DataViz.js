@@ -17,9 +17,12 @@ import StackedLineChartIcon from '@mui/icons-material/StackedLineChart'
 
 import { useTheme, styled } from '@mui/material/styles'
 
+import { IntegerField } from '@molaux/mui-utils'
+
 import { format } from 'date-fns'
 import frLocale from "date-fns/locale/fr"
 
+import { IntegerWithSelectField } from '@molaux/mui-utils'
 
 import deepmerge from 'deepmerge'
 
@@ -28,8 +31,6 @@ const logger = loggerGenerator('error')
 
 import { resolveObjectKeyChain } from './utils/data'
 
-import { IntegerWithSelectField } from './IntegerWithSelectField'
-import { IntegerField } from './IntegerField'
 import { SummaryTable } from './SummaryTable'
 
 import { Tooltip as CustomTooltip } from './Tooltip'
