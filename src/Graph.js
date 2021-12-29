@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
-import { Route, withRouter } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 
+import { withRouter } from './utils/router'
 import { DataViz } from './DataViz'
 
 import strtotime from 'locutus/php/datetime/strtotime'
@@ -37,8 +38,7 @@ import { withStyles } from '@mui/styles'
 import ggChartColors from './ChartColors'
 
 import loggerGenerator from './utils/logger'
-const logger = loggerGenerator('error')
-
+const logger = loggerGenerator('none')
 const ITEM_HEIGHT = 48
 const ITEM_PADDING_TOP = 8
 
@@ -308,8 +308,8 @@ class Graph extends Component {
   componentDidUpdate(prevProps, prevState, snapshot) {
     logger.log('V: did update')
     if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-      logger.log('V: pushing new url', `${this.props.prefixPath}/${this.encodeState()}`)
-      this.props.history.push(`${this.props.prefixPath}/${this.encodeState()}`)
+      logger.log('V: pushing new url', `${this.encodeState()}`)
+      this.props.history.push(`${this.encodeState()}`)
     }
   }
 
@@ -337,7 +337,7 @@ class Graph extends Component {
   componentDidMount () {
     logger.log('V: did mount', this.props.match)
     let urlConfiguration = {}
-    if (this.props.match && this.props.match.params.configuration) {
+    if (this.props.match && this.props.match.params.configuration && this.props.match.params.configuration !== this.props.match.params.module) {
       logger.log('V: did mount with config')
 
       urlConfiguration = this.decodeState(this.props.match.params.configuration)
@@ -349,8 +349,8 @@ class Graph extends Component {
         ...urlConfiguration
       }))
     } else {
-      logger.log('V: pushing new url', `${this.props.prefixPath}/${this.encodeState()}`)
-      this.props.history.push(`${this.props.prefixPath}/${this.encodeState()}`)
+      logger.log('V: pushing new url', `${this.encodeState()}`)
+      this.props.history.push(`${this.encodeState()}`)
     }
   }
 
@@ -542,19 +542,19 @@ const GraphQLDataViz = graphql(STATS_QUERY, {
     })
   })(DataViz)
 
-const GraphWithStyle = withStyles(styles, { withTheme: true })(props => {
+const GraphWithStyleAndRoute = withRouter(withStyles(styles, { withTheme: true })(props => {
   const isWide = useMediaQuery(props.theme.breakpoints.up('sm'))
   return <Graph 
     smUpWidth={isWide} 
     {...props}
   />
-})
+}))
  
-const StyledGraphWithRoute = props => <Route 
-    path={`${props.match.path}/:configuration?`}
-    render={routeProps => <GraphWithStyle prefixPath={props.match.url} {...props} {...routeProps}/>}
-  />
+const StyledGraphWithRouteAndRouter = props => <Routes>
+    <Route 
+      path={':configuration/*'}
+      element={<GraphWithStyleAndRoute {...props}/>}
+    />
+  </Routes>
     
-const StyledGraphWithRouteAndRouter = withRouter(StyledGraphWithRoute)
-
 export default StyledGraphWithRouteAndRouter
