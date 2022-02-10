@@ -112,6 +112,7 @@ class Graph extends Component {
     super(props);
     const { autoConfigs, defaultConfig, defaultGranularity, defaultDurationUnit, defaultDurationAmount, defaultKeys, defaultGraphType, defaultGraphStack, defaultGraphView, defaultDates, defaultMovingWindowSize } = this.props
     this.state = {
+      showEvents: true,
       movingWindowSize: defaultMovingWindowSize || (autoConfigs[defaultConfig]?.movingWindowSize ? autoConfigs[defaultConfig].movingWindowSize : 1),
       granularity: defaultGranularity || (autoConfigs[defaultConfig]?.granularity ? autoConfigs[defaultConfig].granularity : 'day'),
       graphType: defaultGraphType || 'line',
@@ -119,10 +120,10 @@ class Graph extends Component {
       graphStack: defaultGraphStack !== undefined && defaultGraphStack !== null ? defaultGraphStack : false,
       keys: defaultKeys || [],
       dimensions: {},
-      autoConfig: defaultConfig === 'custom' ? null : defaultConfig,
-      durationUnit: defaultDurationUnit || autoConfigs[defaultConfig]?.durationUnit,
-      durationAmount: defaultDurationAmount || autoConfigs[defaultConfig]?.durationAmount,
-      dates: defaultDates || autoConfigs[defaultConfig]?.dates() || []
+      autoConfig: defaultConfig,
+      durationUnit: !defaultConfig && defaultDurationUnit ? defaultDurationUnit : autoConfigs[defaultConfig]?.durationUnit,
+      durationAmount: !defaultConfig && defaultDurationAmount ? defaultDurationAmount :  autoConfigs[defaultConfig]?.durationAmount,
+      dates: !defaultConfig && defaultDates ? defaultDates : autoConfigs[defaultConfig]?.dates() || []
     }
     logger.log('V: init')
 
@@ -144,9 +145,13 @@ class Graph extends Component {
     }
   }
 
+  onShowEvents (event) {
+    this.setState({ showEvents: event.target.checked })
+  }
+
   dateFormatter(granularity) {
     switch (granularity) {
-      case 'hour': return 'EEE dd/MM/yyyy, HH:mm'
+      case 'hour': return 'EEE dd/MM/yyyy, HH:00'
       case 'day': return 'EEE dd/MM/yyyy'
       case 'week': return 'RRRR\', semaine \'II'
       case 'month': return 'MM/yyyy'
@@ -192,7 +197,7 @@ class Graph extends Component {
       if (typeof this.props.onMovingWindowSizeChange === 'function') {
         this.props.onMovingWindowSizeChange(parseInt(value, 10))
       }
-      if (typeof this.props.onAutoconfigChange === 'function') {
+      if (typeof this.props.onAutoconfigChange === 'function' && this.state.autoConfig !== null) {
         this.props.onAutoconfigChange('custom')
       }
     }
@@ -207,7 +212,7 @@ class Graph extends Component {
       if (typeof this.props.onDurationAmountChange === 'function') {
         this.props.onDurationAmountChange(parseInt(value, 10))
       }
-      if (typeof this.props.onAutoconfigChange === 'function') {
+      if (typeof this.props.onAutoconfigChange === 'function' && this.state.autoConfig !== null) {
         this.props.onAutoconfigChange('custom')
       }
     }
@@ -221,7 +226,7 @@ class Graph extends Component {
     if (typeof this.props.onDurationUnitChange === 'function') {
       this.props.onDurationUnitChange(value)
     }
-    if (typeof this.props.onAutoconfigChange === 'function') {
+    if (typeof this.props.onAutoconfigChange === 'function' && this.state.autoConfig !== null) {
       this.props.onAutoconfigChange('custom')
     }
   }
@@ -254,7 +259,7 @@ class Graph extends Component {
         autoConfig: null
       }
     })
-    if (typeof this.props.onAutoconfigChange === 'function') {
+    if (typeof this.props.onAutoconfigChange === 'function' && this.state.autoConfig !== null) {
       this.props.onAutoconfigChange('custom')
     }
   }
@@ -271,7 +276,7 @@ class Graph extends Component {
         dates: datesCopy
       }
     })
-    if (typeof this.props.onAutoconfigChange === 'function') {
+    if (typeof this.props.onAutoconfigChange === 'function' && this.state.autoConfig !== null) {
       this.props.onAutoconfigChange('custom')
     }
   }
@@ -292,7 +297,7 @@ class Graph extends Component {
       }
     })
 
-    if (typeof this.props.onAutoconfigChange === 'function') {
+    if (typeof this.props.onAutoconfigChange === 'function' && this.state.autoConfig !== null) {
       this.props.onAutoconfigChange('custom')
     }
   }
@@ -322,7 +327,10 @@ class Graph extends Component {
     
     return JSON.stringify(nextState) !== JSON.stringify(this.state)
       || nextProps.dimensions !== this.props.dimensions
-      || nextProps.smUpWidth !== this.props.smUpWidth;
+      || nextProps.smUpWidth !== this.props.smUpWidth
+      || nextProps.events !== this.props.events
+      || nextProps.showEvents !== this.props.showEvents
+
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -374,7 +382,18 @@ class Graph extends Component {
    * }
    */
   render() { 
-    let { classes, graphOptions, theme, dimensionsSelector, autoConfigs, timeAggregations, smUpWidth } = this.props
+    let {
+      classes,
+      graphOptions,
+      theme,
+      dimensionsSelector,
+      autoConfigs,
+      timeAggregations,
+      smUpWidth,
+      EventsManager,
+      events
+    } = this.props
+
     if ( !graphOptions ) {
       graphOptions = { serieType: 'linear' }
     }
@@ -490,7 +509,10 @@ class Graph extends Component {
         dateFormatterGenerator={this.dateFormatter}
         smUpWidth={smUpWidth}
         keys={keys}
+        events={events}
+        showEvents={this.state.showEvents}
         />
+      { EventsManager ? <EventsManager showEvents={this.state.showEvents} onShowEvents={this.onShowEvents.bind(this)}/> : null }
       <Divider variant="middle" style={{marginBottom: theme.spacing(1)}}/>
       <FormControl className={classes.formControl} style={{minWidth: '100%'}}>
         <FormLabel>Dimensions</FormLabel>

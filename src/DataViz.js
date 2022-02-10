@@ -77,6 +77,8 @@ export const DataViz = ({
   onDateAdd,
   minDurationAmount,
   maxDurationAmount,
+  events,
+  showEvents,
   data
 }) => {
   const theme = useTheme()
@@ -181,6 +183,31 @@ export const DataViz = ({
   }, [data, dates, keys, dateFormatterGenerator, granularity, dimensions])
 
   const InlineTooltip = useCallback(CustomTooltip(dimensions, graphStack), [dimensions, graphStack])
+
+  const configuredEvents = events?.map(
+    (e) => {
+      const key = format(new Date(e.startDate), dateFormatter, { weekStartsOn: 1, locale: frLocale })
+      let graphKeys = []
+      for (const serie of series) {
+        for (const dimensionIndex in serie.dimensions) {
+          const dimension = serie.dimensions[dimensionIndex]
+          if (dimension.date === key) {
+            graphKeys.push({
+              k: serie.date,
+              color: colors[`${dimensionIndex}.${keys?.[0]}`]
+            })
+            break
+          }
+        }
+      }
+      return graphKeys.map(({ k, color },i) => ({
+        ...e,
+        id: `${e.id}-${i}`,
+        startDate: k,
+        color
+      }))
+    }
+  ).flat()
   
   logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
@@ -296,6 +323,8 @@ export const DataViz = ({
       graphType={graphType} serieType={graphOptions.serieType}
       colors={colors}
       TooltipContent={CustomTooltip}
+      events={configuredEvents}
+      showEvents={showEvents}
       />
    
     {Object.keys(tooltipProps).length && !smUpWidth
