@@ -152,6 +152,7 @@ class Graph extends Component {
   dateFormatter(granularity) {
     switch (granularity) {
       case 'hour': return 'EEE dd/MM/yyyy, HH:00'
+      case 'date': return 'dd/MM/yyyy'
       case 'day': return 'EEE dd/MM/yyyy'
       case 'week': return 'RRRR\', semaine \'II'
       case 'month': return 'MM/yyyy'

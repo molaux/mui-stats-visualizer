@@ -184,7 +184,8 @@ export const DataViz = ({
 
   const InlineTooltip = useCallback(CustomTooltip(dimensions, graphStack), [dimensions, graphStack])
 
-  const configuredEvents = events?.map(
+  const dayFormatter = dateFormatterGenerator('date')
+  const configuredEvents = [...events?.map(
     (e) => {
       const key = format(new Date(e.startDate), dateFormatter, { weekStartsOn: 1, locale: frLocale })
       let graphKeys = []
@@ -200,15 +201,25 @@ export const DataViz = ({
           }
         }
       }
-      return graphKeys.map(({ k, color },i) => ({
+      return graphKeys.map(({ k, color }, i) => ({
         ...e,
         id: `${e.id}-${i}`,
         startDate: k,
+        realStartDate: format(new Date(e.startDate), dayFormatter, { weekStartsOn: 1, locale: frLocale }),
         color
       }))
     }
   ).flat()
-  
+    .reduce((map, event) => {
+      if (map.has(event.startDate)) {
+        map.get(event.startDate).push(event)
+      } else {
+        map.set(event.startDate, [event])
+      }
+      return map
+    }, new Map()).entries()]
+    .map(([key, events]) => ({ key, events }))
+  console.log(configuredEvents)
   logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>

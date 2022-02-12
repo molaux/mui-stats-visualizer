@@ -4,7 +4,6 @@ import { makeStyles } from '@mui/styles'
 
 import {
   ResponsiveContainer,
-  ReferenceLine,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -19,39 +18,10 @@ import {
 
 import { formatSerieValue } from './DataRepresentation'
 
+import { buildEvent } from './Event'
+
 const GRAPH_TINY_RATIO = 0.7
 const GRAPH_WIDE_RATIO = 0.3
-
-const LineRefLabel = ({ color, viewBox, label }) => (
-  <text
-    fontFamily="Roboto"
-    fontSize="10px"
-    textAnchor="end"
-    fill={color}
-    x={viewBox?.x}
-    y={viewBox?.y}
-    dy={-3}
-    dx={-5}
-    transform={`rotate(-90 ${viewBox.x} 0)`}
-  >
-    {label}
-  </text>
-)
-
-// LineRefLabel.propTypes = {
-//   color: PropTypes.string,
-//   viewBox: PropTypes.shape({
-//     x: PropTypes.number,
-//     y: PropTypes.number
-//   }),
-//   label: PropTypes.string
-// }
-
-// LineRefLabel.defaultProps = {
-//   color: 'red',
-//   viewBox: null,
-//   label: null
-// }
 
 const useSvgResponsiveContainersStyles = makeStyles(theme => ({
   paddedContent: {
@@ -188,16 +158,13 @@ export const Chart = memo(({
               )
             : null}
             {showEvents
-              ? events?.map((event) => <ReferenceLine
-                  key={event.id}
-                  x={event.startDate}
-                  stroke={event.color}
-                  label={<LineRefLabel
-                    color={event.color}
-                    label={event.text}
-                  />}
-                />
-              )
+              ? events?.map((event) => {
+                console.log(event)
+                return buildEvent({
+                  event: event,
+                  type: graphType === 'bar' ? 'dot' : 'line'
+                })
+              })
               : null}
           </ChartComponent>
         </ResponsiveContainer>
