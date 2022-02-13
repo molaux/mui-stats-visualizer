@@ -8,7 +8,7 @@ const useLabelStyle = makeStyles((theme) => ({
     fill: color.toString(),
     color: color.toString(),
     '& > rect': {
-      fill: 'transparent',
+      display: 'none',
     },
     '& > text': {
       stroke: 'white',
@@ -18,13 +18,20 @@ const useLabelStyle = makeStyles((theme) => ({
       strokeLinejoin: 'miter',
       paintOrder: 'stroke fill'
     },
+    '& > text ~ text': {
+      display: 'none'
+    },
     '&:hover': {
       fill: 'white',
       color: 'white',
       '& > text': {
         strokeWidth: 0
       },
+      '& > text ~ text': {
+        display: 'inherit'
+      },
       '& > rect': {
+        display: 'inherit',
         fill: color.toString()
       }
     }
@@ -75,7 +82,7 @@ const LineRefLabel = ({ event, viewBox }) => {
           textAnchor="end"
           transform={`rotate(-90 ${viewBox.x} 0)`}
         >
-          {realStartDate} : {text}
+          {text} - {realStartDate}
         </text>
         )
       )}
@@ -118,7 +125,7 @@ const IconRefLabel = ({ event, viewBox }) => {
           fontSize="10px"
           textAnchor="middle"
         >
-          {realStartDate} : {text}
+          {realStartDate} - {text}
         </text>
         )
       )}
@@ -152,7 +159,6 @@ const IconRefLabel = ({ event, viewBox }) => {
 // }
 
 export const buildEvent = ({ event, type }) => {
-  console.log('events', event)
   if (event.events.length > 0) {
     return (
       <ReferenceLine

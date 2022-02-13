@@ -158,13 +158,10 @@ export const Chart = memo(({
               )
             : null}
             {showEvents
-              ? events?.map((event) => {
-                console.log(event)
-                return buildEvent({
+              ? events?.map((event) => buildEvent({
                   event: event,
                   type: graphType === 'bar' ? 'dot' : 'line'
-                })
-              })
+                }))
               : null}
           </ChartComponent>
         </ResponsiveContainer>

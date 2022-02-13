@@ -206,6 +206,7 @@ export const DataViz = ({
         id: `${e.id}-${i}`,
         startDate: k,
         realStartDate: format(new Date(e.startDate), dayFormatter, { weekStartsOn: 1, locale: frLocale }),
+        originalStartDate: new Date(e.startDate),
         color
       }))
     }
@@ -218,8 +219,8 @@ export const DataViz = ({
       }
       return map
     }, new Map()).entries()]
-    .map(([key, events]) => ({ key, events }))
-  console.log(configuredEvents)
+    .map(([key, events]) => ({ key, events: events.sort((a, b) => b.originalStartDate.getTime() - a.originalStartDate.getTime()) }))
+
   logger.log('GV: rendering', reduction.length, dates.length)
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>
