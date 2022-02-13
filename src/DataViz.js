@@ -185,7 +185,7 @@ export const DataViz = ({
   const InlineTooltip = useCallback(CustomTooltip(dimensions, graphStack), [dimensions, graphStack])
 
   const dayFormatter = dateFormatterGenerator('date')
-  const configuredEvents = [...events?.map(
+  const configuredEvents = [...(events ?? []).map(
     (e) => {
       const key = format(new Date(e.startDate), dateFormatter, { weekStartsOn: 1, locale: frLocale })
       let graphKeys = []
