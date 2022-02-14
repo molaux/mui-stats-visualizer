@@ -61,7 +61,6 @@ const LineRefLabel = ({ event, viewBox }) => {
   return (
 
     <g
-      // transform={`rotate(-90 ${viewBox.x} 0)`}
       className={classes.event}
     >
       <rect
@@ -86,15 +85,16 @@ const LineRefLabel = ({ event, viewBox }) => {
         </text>
         )
       )}
-      <Message 
-        x={0}
-        y={0}
-        // dy={-3}
-        // dx={-5}
-        height={15}
-        width={15}
-        transform={`translate(${viewBox.x} ${viewBox.y}),rotate(-90 0 15)`}
-      />
+      <g
+        transform={`rotate(-90 ${viewBox.x} ${viewBox.y + 15})`}
+      >
+        <Message 
+          x={viewBox.x}
+          y={viewBox.y}
+          height={15}
+          width={15}
+        />
+      </g>
     </g>
   )
 }
@@ -104,7 +104,6 @@ const IconRefLabel = ({ event, viewBox }) => {
   return (
 
     <g
-      // transform={`rotate(-90 ${viewBox.x} 0)`}
       className={classes.iconEvent}
     >
       <rect
@@ -131,13 +130,10 @@ const IconRefLabel = ({ event, viewBox }) => {
       )}
       
       <Message 
-        x={0}
-        y={0}
-        // dy={-3}
-        // dx={-5}
+        x={viewBox.x}
+        y={viewBox.y}
         height={15}
         width={15}
-        transform={`translate(${viewBox.x} ${viewBox.y})`}
       />
     </g>
   )
