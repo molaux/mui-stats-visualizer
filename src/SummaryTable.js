@@ -1,5 +1,5 @@
 import React from 'react'
-import { makeStyles } from '@mui/styles'
+import { makeStyles } from 'tss-react/mui'
 
 import TextField from '@mui/material/TextField'
 import AddIcon from '@mui/icons-material/Add'
@@ -20,13 +20,13 @@ import { VariationValue, ShareValue, formatSerieValue } from './DataRepresentati
 
 import {
   DateTimePicker,
-  DatePicker } from '@mui/lab'
+  DatePicker } from '@mui/x-date-pickers'
 
 import plural from 'pluralize-fr'
 
-const useStyles = makeStyles(theme => ({
-
+const useStyles = makeStyles()(theme => ({
 }))
+
 export const SummaryTable = ({
     reduction,
     dimensions,
@@ -43,7 +43,7 @@ export const SummaryTable = ({
     dateFormatterGenerator,
     colors
   }) => {
-  const classes = useStyles()
+  const { classes } = useStyles()
   return <Table className={classes.table} size="small" >
     <TableHead>
       <TableRow>

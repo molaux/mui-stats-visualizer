@@ -4,7 +4,7 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableRow from '@mui/material/TableRow'
 import TableHead from '@mui/material/TableHead'
-import { withStyles } from '@mui/styles'
+import { withStyles } from 'tss-react/mui'
 import Checkbox from '@mui/material/Checkbox'
 import TextField from '@mui/material/TextField'
 import TablePagination from '@mui/material/TablePagination'
@@ -388,7 +388,7 @@ class TableSelect extends PureComponent {
   }
 }
 
-export default withStyles(theme => ({
+export default withStyles(TableSelect, theme => ({
   headSelectors: {
     fontSize: '0.9em'
   },
@@ -400,4 +400,4 @@ export default withStyles(theme => ({
     minWidth: 120,
     maxWidth: 300,
   }
-}), { withTheme: true })(TableSelect)
+}))

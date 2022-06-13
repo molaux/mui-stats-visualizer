@@ -16,9 +16,9 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 
 import Color from 'color'
 
-import { LocalizationProvider } from '@mui/lab'
+import { LocalizationProvider } from '@mui/x-date-pickers'
 
-import Divider from '@mui/material/Divider'
+import { Divider, useTheme } from '@mui/material'
 
 import TableSelect from './TableSelect'
 
@@ -34,7 +34,7 @@ import frLocale from "date-fns/locale/fr"
 import { gql } from '@apollo/client'
 import { graphql } from '@apollo/client/react/hoc'
 
-import { withStyles } from '@mui/styles'
+import { withStyles } from 'tss-react/mui'
 import ggChartColors from './ChartColors'
 
 import loggerGenerator from './utils/logger'
@@ -51,9 +51,9 @@ const MenuProps = {
   },
 }
 
-function getStyles(key, keys, theme) {
+function getStyles(key, keys) {
   return {
-    fontWeight:
+    fontWeight: (theme) =>
       keys.indexOf(key) === -1
         ? theme.typography.fontWeightRegular
         : theme.typography.fontWeightMedium,
@@ -386,7 +386,6 @@ class Graph extends Component {
     let {
       classes,
       graphOptions,
-      theme,
       dimensionsSelector,
       autoConfigs,
       timeAggregations,
@@ -514,7 +513,7 @@ class Graph extends Component {
         showEvents={this.state.showEvents}
         />
       { EventsManager ? <EventsManager showEvents={this.state.showEvents} onShowEvents={this.onShowEvents.bind(this)}/> : null }
-      <Divider variant="middle" style={{marginBottom: theme.spacing(1)}}/>
+      <Divider variant="middle" sx={{marginBottom: (theme) => theme.spacing(1)}}/>
       <FormControl className={classes.formControl} style={{minWidth: '100%'}}>
         <FormLabel>Dimensions</FormLabel>
         {dimensionsSelector === 'table'
@@ -543,7 +542,7 @@ class Graph extends Component {
               MenuProps={MenuProps}
             >
               {Object.keys(this.props.dimensions).map(key => (
-                <MenuItem key={key} value={key} style={getStyles(key, this.state.keys, theme)}>
+                <MenuItem key={key} value={key} sx={getStyles(key, this.state.keys)}>
                   {this.props.dimensions[key].title}
                 </MenuItem>
               ))}
@@ -565,13 +564,14 @@ const GraphQLDataViz = graphql(STATS_QUERY, {
     })
   })(DataViz)
 
-const GraphWithStyleAndRoute = withRouter(withStyles(styles, { withTheme: true })(props => {
-  const isWide = useMediaQuery(props.theme.breakpoints.up('sm'))
+const GraphWithStyleAndRoute = withRouter(withStyles(props => {
+  const theme = useTheme()
+  const isWide = useMediaQuery(theme.breakpoints.up('sm'))
   return <Graph 
     smUpWidth={isWide} 
     {...props}
   />
-}))
+}, styles))
  
 const StyledGraphWithRouteAndRouter = props => <Routes>
     <Route 

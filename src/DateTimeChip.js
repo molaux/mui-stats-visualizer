@@ -13,12 +13,13 @@ import AddIcon from '@mui/icons-material/Add'
 import {
   DateTimePicker,
   DatePicker
-} from '@mui/lab'
+} from '@mui/x-date-pickers'
 
-import { withStyles, MuiThemeProvider } from '@mui/styles'
-import { createMuiTheme } from '@mui/material'
+import { withStyles } from 'tss-react/mui'
+import { ThemeProvider } from '@mui/material'
+import { createTheme } from '@mui/material/styles'
 
-const darkTheme = createMuiTheme({
+const darkTheme = createTheme({
   palette: {
     type: 'dark',
   },
@@ -44,7 +45,7 @@ const styles = theme => ({
   }
 })
 
-export const AddDateTimeChip = withStyles(styles)(({ onClick, classes  }) => <Chip
+export const AddDateTimeChip = withStyles(({ onClick, classes  }) => <Chip
   label={<AddIcon />}
   onClick={onClick}
   classes={{
@@ -54,9 +55,9 @@ export const AddDateTimeChip = withStyles(styles)(({ onClick, classes  }) => <Ch
   }}
   className={classes.chip}
   color="primary"
-/>)
+/>, styles)
 
-export const DateTimeChip = withStyles(styles)(({ formatter, granularity, classes, onDelete, onChange, date }) => <MuiThemeProvider theme={darkTheme}> 
+export const DateTimeChip = withStyles(({ formatter, granularity, classes, onDelete, onChange, date }) => <ThemeProvider theme={darkTheme}> 
     <Chip
       icon={<DateIcon style={{color:'white'}} />}
       classes={{
@@ -97,4 +98,4 @@ export const DateTimeChip = withStyles(styles)(({ formatter, granularity, classe
       className={classes.chip}
       color="primary"
     />
-  </MuiThemeProvider>)
+  </ThemeProvider>, styles)

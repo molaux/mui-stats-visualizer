@@ -180,6 +180,7 @@ export const DataViz = ({
         logger.error('Unable to compute series from api : ' + e)
       }
     }
+    return () => null
   }, [data, dates, keys, dateFormatterGenerator, granularity, dimensions])
 
   const InlineTooltip = useCallback(CustomTooltip(dimensions, graphStack), [dimensions, graphStack])

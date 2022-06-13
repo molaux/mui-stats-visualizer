@@ -1,6 +1,6 @@
 import React, { memo, useRef } from 'react'
 import isEqual from "react-fast-compare"
-import { makeStyles } from '@mui/styles'
+import { makeStyles } from 'tss-react/mui'
 
 import {
   ResponsiveContainer,
@@ -23,7 +23,7 @@ import { buildEvent } from './Event'
 const GRAPH_TINY_RATIO = 0.7
 const GRAPH_WIDE_RATIO = 0.3
 
-const useSvgResponsiveContainersStyles = makeStyles(theme => ({
+const useSvgResponsiveContainersStyles = makeStyles()(theme => ({
   paddedContent: {
     position: 'relative',
     boxSizing: 'border-box',
@@ -68,7 +68,7 @@ export const Chart = memo(({
   TooltipContent
 }) => {
   const graphContainerRef = useRef(null)
-  const classes = useSvgResponsiveContainersStyles()
+  const { classes } = useSvgResponsiveContainersStyles()
   // Select chart type
   const [ ChartComponent, SerieComponent ] = graphType === 'bar' 
     ? [ BarChart, Bar ]

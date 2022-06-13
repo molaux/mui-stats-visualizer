@@ -1,9 +1,9 @@
 import React from 'react'
 import { ReferenceLine } from 'recharts'
 import { Message } from '@mui/icons-material'
-import { makeStyles } from '@mui/styles'
+import { makeStyles } from 'tss-react/mui'
 
-const useLabelStyle = makeStyles((theme) => ({
+const useLabelStyle = makeStyles()((theme) => ({
   event: ({ color }) => ({
     fill: color.toString(),
     color: color.toString(),
@@ -57,7 +57,7 @@ const useLabelStyle = makeStyles((theme) => ({
 }))
 
 const LineRefLabel = ({ event, viewBox }) => {
-  const classes = useLabelStyle({ color: event.events[0].color })
+  const { classes } = useLabelStyle({ color: event.events[0].color })
   return (
 
     <g
@@ -100,7 +100,7 @@ const LineRefLabel = ({ event, viewBox }) => {
 }
 
 const IconRefLabel = ({ event, viewBox }) => {
-  const classes = useLabelStyle({ color: event.events[0].color })
+  const { classes } = useLabelStyle({ color: event.events[0].color })
   return (
 
     <g

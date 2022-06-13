@@ -9,9 +9,10 @@ import Typography from '@mui/material/Typography'
 
 import { formatSerieValue, Share, Variation } from './DataRepresentation'
 import { resolveObjectKeyChain } from './utils/data'
-import { makeStyles } from '@mui/styles'
-const useStyles = makeStyles((theme) => ({
-  tooltip: ({isPopup}) =>  ({
+import { makeStyles } from 'tss-react/mui'
+
+const useStyles = makeStyles()((theme, { isPopup }) => ({
+  tooltip: {
     backgroundColor: isPopup ? 'rgba(255,255,255,0.95)' : 'transparent',
     backdropFilter: isPopup ? 'blur(6px)' : 'none',
     padding: theme.spacing(0, 0.5, 0.5, 0.5),
@@ -24,10 +25,11 @@ const useStyles = makeStyles((theme) => ({
     '& tr:last-child td': {
       borderBottom: 0
     }
-  })
+  }
 }))
+
 export const Tooltip = (dimensions, summize, onUpdate, dontShow) => ({ active, payload, wrapperStyle }) => {
-  const classes = useStyles({isPopup: dontShow === false})
+  const { classes } = useStyles({ isPopup: dontShow === false })
   try {
     if (dontShow) {
       if (active && typeof onUpdate === 'function') {

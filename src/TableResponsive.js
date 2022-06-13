@@ -1,6 +1,6 @@
 import React from 'react';
 import Table from '@mui/material/Table';
-import { withStyles } from '@mui/styles';
+import { withStyles } from 'tss-react/mui';
 const styles = theme => ({
   root: {
     width: '100%',
@@ -23,4 +23,4 @@ function TableResponsive(props) {
   );
 }
 
-export default withStyles(styles)(TableResponsive);
+export default withStyles(TableResponsive, styles);

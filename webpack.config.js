@@ -57,7 +57,8 @@ module.exports = {
       '@molaux/mui-utils': '@molaux/mui-utils'
     },
     /@mui\/.*/,
-    /date-fns\/.*/
+    /date-fns\/.*/,
+    'tss-react/mui'
   ],
   optimization: {
     nodeEnv: false
