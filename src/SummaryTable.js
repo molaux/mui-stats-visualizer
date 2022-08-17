@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback, useState } from 'react'
 import { makeStyles } from 'tss-react/mui'
 
 import TextField from '@mui/material/TextField'
@@ -44,6 +44,18 @@ export const SummaryTable = ({
     colors
   }) => {
   const { classes } = useStyles()
+  const [localDates, _setLocalDates] = useState(dates.map(date => new Date(date)))
+  const setLocalDates = useCallback((i, date) => {
+    _setLocalDates((dates) => {
+      dates[i] = date
+      return [...dates]
+    })
+  }, [_setLocalDates])
+  const onDateAccepted = useCallback((i, date) => {
+    setLocalDates(i, date)
+    onDateChange(i, date)
+  }, [setLocalDates, onDateChange])
+
   return <Table className={classes.table} size="small" >
     <TableHead>
       <TableRow>
@@ -106,13 +118,13 @@ export const SummaryTable = ({
           {granularity === 'hour'
             ? <DateTimePicker
               renderInput={props => <TextField {...props} style={{width: '28ch'}} variant="standard" helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
-              value={dates[i]}
+              value={localDates[i]}
               disableFuture
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
               disableMaskedInput={true}
               ampm={false}
-              onAccept={date => onDateChange(i, date)}
-              onChange={() => null}
+              onAccept={date => onDateAccepted(i, date)}
+              onChange={(date) => setLocalDates(i, date)}
               leftArrowIcon={<KeyboardArrowLeftIcon/>}
               rightArrowIcon={<KeyboardArrowRightIcon/>}
               allowSameDateSelection={true}
@@ -121,13 +133,13 @@ export const SummaryTable = ({
               variant="standard"
             />
             : <DatePicker
-              value={dates[i]}
+              value={localDates[i]}
               disableFuture
               renderInput={props => <TextField {...props} style={{width: '23ch'}} variant="standard" helperText={`${durationAmount} ${(durationAmount > 1 ? plural(timeAggregations[durationUnit].value) : timeAggregations[durationUnit].value).toLowerCase()}`} />}
               inputFormat={dateFormatterGenerator(granularity === 'hour' ? 'hour' : 'day' )}
               disableMaskedInput={true}
-              onAccept={date => onDateChange(i, date)}
-              onChange={() => null}
+              onAccept={date => onDateAccepted(i, date)}
+              onChange={(date) => setLocalDates(i, date)}
               leftArrowIcon={<KeyboardArrowLeftIcon/>}
               rightArrowIcon={<KeyboardArrowRightIcon/>}
               allowSameDateSelection={true}
