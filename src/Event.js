@@ -3,8 +3,8 @@ import { ReferenceLine } from 'recharts'
 import { Message } from '@mui/icons-material'
 import { makeStyles } from 'tss-react/mui'
 
-const useLabelStyle = makeStyles()((theme) => ({
-  event: ({ color }) => ({
+const useLabelStyle = makeStyles()((theme, { color }) => ({
+  event: {
     fill: color.toString(),
     color: color.toString(),
     '& > rect': {
@@ -35,8 +35,8 @@ const useLabelStyle = makeStyles()((theme) => ({
         fill: color.toString()
       }
     }
-  }),
-  iconEvent: ({ color }) => ({
+  },
+  iconEvent: {
     fill: color.toString(),
     color: color.toString(),
     '& > text': {
@@ -53,7 +53,7 @@ const useLabelStyle = makeStyles()((theme) => ({
         display: 'inherit'
       }
     }
-  })
+  }
 }))
 
 const LineRefLabel = ({ event, viewBox }) => {
