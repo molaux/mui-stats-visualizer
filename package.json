@@ -1,11 +1,12 @@
 {
   "name": "@molaux/mui-stats-visualizer",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "A macro component that configures, fetches and display stats data",
   "main": "build/index.js",
   "scripts": {
     "start": "webpack --mode=development --watch",
-    "build": "webpack --mode=production"
+    "build": "webpack --mode=production",
+    "pack": "webpack"
   },
   "dependencies": {
     "color": "<4",
