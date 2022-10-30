@@ -157,12 +157,25 @@ export const DataViz = ({
         const _reduction = _series[0].dimensions.map((dimension, i) => {
           const dimensionSerie = _series.map(point => point.dimensions[i])
           return keys.reduce((o, key) => {
-            o[key] = dimensionSerie
+            let reduction = dimensionSerie
               .map(entry => resolveObjectKeyChain(entry, key.split('.')).value)
               .reduce(dimensions[key].reducer, null)
-            o[key] = o[key] !== null && typeof o[key] === 'object'
-              ? o[key].value
-              : o[key]
+            
+            reduction = reduction !== null && typeof reduction === 'object'
+              ? reduction.value
+              : reduction
+
+            let altReduction = dimensions[key].altReducer
+              ? dimensionSerie
+                .map(entry => resolveObjectKeyChain(entry, key.split('.')).value)
+                .reduce(dimensions[key].altReducer, null)
+              : null
+            
+            altReduction = altReduction !== null && typeof altReduction === 'object'
+              ? altReduction.value
+              : altReduction
+
+            o[key] = { main: reduction, alt: altReduction }
             return o
           }, {})
         }) 
@@ -223,6 +236,7 @@ export const DataViz = ({
     .map(([key, events]) => ({ key, events: events.sort((a, b) => b.originalStartDate.getTime() - a.originalStartDate.getTime()) }))
 
   logger.log('GV: rendering', reduction.length, dates.length)
+
   return <div className={classes.graph}>
     <div className={classes.paddedContent}>
       <SummaryTable

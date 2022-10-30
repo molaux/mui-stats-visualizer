@@ -76,9 +76,7 @@ export const SummaryTable = ({
         {reduction.length 
           ? Object.keys(reduction[0]).map((key, i) =>
             <TableCell key={key}>
-              {dimensions[key].group?.dimension
-              ? `${dimensions[key].group?.label} > `
-              : null}{dimensions[key].title}
+              {dimensions[key].title}
             </TableCell>)
           : null}
       </TableRow>
@@ -88,17 +86,17 @@ export const SummaryTable = ({
       (lastSeries, serie) => [
         ...lastSeries, {
         dimensions: serie,
-        total: Object.keys(serie).reduce((total, key) => total + serie[key], 0),
+        total: Object.keys(serie).reduce((total, key) => total + serie[key].main, 0),
         totalVariation: ! lastSeries.length 
           ? null
-          : Object.keys(serie).reduce((total, key) => total + serie[key], 0) / lastSeries[lastSeries.length -1].total,
+          : Object.keys(serie).reduce((total, key) => total + serie[key].main, 0) / lastSeries[lastSeries.length -1].total,
         variation: Object.keys(serie).reduce(
           (o, key) => {
-            if (! lastSeries.length) {
+            if (!lastSeries.length) {
               o[key] = null
             } else {
-              o[key] = lastSeries[lastSeries.length -1].dimensions[key] 
-                ? serie[key] / lastSeries[lastSeries.length -1].dimensions[key]
+              o[key] = lastSeries[lastSeries.length -1].dimensions[key]
+                ? serie[key].main / lastSeries[lastSeries.length -1].dimensions[key].main
                 : null
             }
             return o
@@ -107,7 +105,7 @@ export const SummaryTable = ({
         ) }
       ],
       []
-    ).map(({dimensions: _dimensions, variation, total, totalVariation}, i) =>
+    ).map(({dimensions: _dimensions, variation, total, length, totalVariation}, i) =>
       <TableRow key={i}>
         <TableCell>
           {typeof onDateDelete === 'function' 
@@ -187,7 +185,7 @@ export const SummaryTable = ({
                 marginBottom: '-0.15em',
                 backgroundColor: colors[`${i}.${key}`]
               }}></span>
-            {formatSerieValue(dimensions[key], _dimensions[key])}
+            {formatSerieValue(dimensions[key], _dimensions[key].main)}
             {variation[key] !== null || (graphStack && dimensionsTypesAreHomogenes)
               ? <Box component="span" style={{marginLeft:'1em'}}>
                 ({graphStack && dimensionsTypesAreHomogenes
@@ -197,6 +195,9 @@ export const SummaryTable = ({
                   : null} )
               </Box>
               : null}
+            <p style={{ whiteSpace: 'nowrap', fontSize: '0.8em' }}>
+              ∑ = {formatSerieValue(dimensions[key], _dimensions[key].alt)}
+            </p>
           </TableCell>
         )}
       </TableRow>
